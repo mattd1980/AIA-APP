@@ -45,20 +45,32 @@ Automatiser l'inventaire des biens meubles d'un locataire en utilisant:
 project-root/
 ├── frontend/          # Application React
 ├── backend/           # API Express/TypeScript
-├── docs/              # Documentation technique
+├── docs/              # TOUTE la documentation (voir DEVELOPMENT_GUIDELINES.md)
+│   ├── DEVELOPMENT_GUIDELINES.md  # ⚠️ LIRE EN PREMIER
 │   ├── TECHNICAL_SPECIFICATION.md
 │   ├── API_DOCUMENTATION.md
 │   ├── DEPLOYMENT.md
-│   └── DATABASE_SCHEMA.md
+│   ├── DATABASE_SCHEMA.md
+│   ├── UI.md
+│   ├── test.md
+│   ├── dbschema.md
+│   └── GITHUB_SETUP.md
+├── scripts/           # Scripts utilitaires
 └── README.md
 ```
 
 ## 📚 Documentation
 
+**⚠️ IMPORTANT : Lire [DEVELOPMENT_GUIDELINES.md](./docs/DEVELOPMENT_GUIDELINES.md) en premier !**
+
+- [Guidelines de Développement](./docs/DEVELOPMENT_GUIDELINES.md) - **COMMENCER ICI**
 - [Spécification Technique](./docs/TECHNICAL_SPECIFICATION.md)
 - [Documentation API](./docs/API_DOCUMENTATION.md)
 - [Guide de Déploiement](./docs/DEPLOYMENT.md)
 - [Schéma de Base de Données](./docs/DATABASE_SCHEMA.md)
+- [Guide UI/UX](./docs/UI.md)
+- [Stratégie de Tests](./docs/test.md)
+- [Setup GitHub](./docs/GITHUB_SETUP.md)
 
 ## 🔧 Installation Locale
 
