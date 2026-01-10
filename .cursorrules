@@ -1,0 +1,69 @@
+# Cursor Rules for AIA-APP
+
+## CRITICAL: Read DEVELOPMENT_GUIDELINES.md First
+
+Before writing any code, ALWAYS read `docs/DEVELOPMENT_GUIDELINES.md` first. This file contains all project decisions, preferences, and conventions.
+
+## Key Principles
+
+1. **NO GOD FILES** - Never create monolithic files. Always separate concerns into focused modules/services.
+2. **Documentation in docs/** - All documentation files must be in the `docs/` folder (except README.md at root).
+3. **Modular Architecture** - One service per domain, one route file per resource, focused components.
+
+## Stack Decisions
+
+- Frontend: React + TypeScript + Vite + DaisyUI + Tailwind + Font Awesome (NO emojis in code)
+- Backend: Node.js + TypeScript + Express + Prisma + PostgreSQL
+- Hosting: Railway (backend/DB) + Vercel/Netlify (frontend)
+- AI: OpenAI GPT-4 Vision API
+- Pricing: DataForSEO + SERP API
+
+## File Organization
+
+- Documentation: `docs/` folder only
+- Routes: `backend/src/routes/` (one file per resource)
+- Services: `backend/src/services/` (one service per domain)
+- Components: `frontend/src/components/` (reusable components)
+- Pages: `frontend/src/pages/` (page components)
+
+## Database
+
+- PostgreSQL on Railway
+- Local password: `123`
+- ORM: Prisma
+- 4 main tables: inventories, inventory_items, inventory_images, reports
+
+## Code Style
+
+- TypeScript strict mode
+- kebab-case for files
+- camelCase for variables/functions
+- PascalCase for components/types
+- NO `any` types
+- Font Awesome icons (NO emojis)
+
+## When Creating New Features
+
+1. Check DEVELOPMENT_GUIDELINES.md
+2. Create route in `routes/`
+3. Create service in `services/`
+4. Add types in `types/`
+5. Write tests
+6. Update documentation in `docs/`
+
+## Anti-Patterns to Avoid
+
+- ❌ God files (monolithic files doing everything)
+- ❌ Documentation at root (use `docs/`)
+- ❌ Business logic in routes (use services)
+- ❌ Emojis in code (use Font Awesome)
+- ❌ `any` types (use proper TypeScript types)
+- ❌ Monolithic services (one service per domain)
+
+## Reference Documents
+
+- `docs/DEVELOPMENT_GUIDELINES.md` - **START HERE**
+- `docs/TECHNICAL_SPECIFICATION.md` - Technical specs
+- `docs/UI.md` - UI/UX guidelines
+- `docs/DATABASE_SCHEMA.md` - Database schema
+- `docs/test.md` - Testing strategy
