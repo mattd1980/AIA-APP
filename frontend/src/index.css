@@ -12,43 +12,29 @@ body {
 }
 
 /* Ensure button text is always readable with proper contrast */
-/* Use CSS variables from DaisyUI theme which automatically adapts to light/dark mode */
+/* Primary button (yellow) - use dark text for good contrast */
 .btn-primary {
-  color: hsl(var(--pc)) !important;
+  color: #1F2937 !important;
 }
 
+/* All other colored buttons - use white text for good contrast */
 .btn-secondary,
 .btn-accent,
 .btn-error,
 .btn-info,
 .btn-success,
 .btn-warning {
-  color: hsl(var(--sc)) !important;
+  color: #FFFFFF !important;
 }
 
-/* Fallback for buttons that might not have content colors set */
-.btn-secondary {
-  color: hsl(var(--sc, 0 0% 100%)) !important;
+/* Ghost buttons - inherit from base-content for proper contrast */
+.btn-ghost {
+  color: inherit !important;
 }
 
-.btn-accent {
-  color: hsl(var(--ac, 0 0% 100%)) !important;
-}
-
-.btn-error {
-  color: hsl(var(--erc, 0 0% 100%)) !important;
-}
-
-.btn-info {
-  color: hsl(var(--inc, 0 0% 100%)) !important;
-}
-
-.btn-success {
-  color: hsl(var(--suc, 0 0% 100%)) !important;
-}
-
-.btn-warning {
-  color: hsl(var(--wac, 0 0% 100%)) !important;
+/* Neutral buttons - use white text */
+.btn-neutral {
+  color: #FFFFFF !important;
 }
 
 /* Fix disabled button contrast */
@@ -58,14 +44,29 @@ body {
   color: inherit !important;
 }
 
-/* Ensure ghost buttons have readable text in dark mode */
-.btn-ghost {
-  color: hsl(var(--bc)) !important;
-}
-
-/* Ensure neutral buttons have proper contrast */
-.btn-neutral {
-  color: hsl(var(--nc, 0 0% 100%)) !important;
+/* Dark mode specific overrides */
+@media (prefers-color-scheme: dark) {
+  /* In dark mode, ensure all buttons have proper contrast */
+  .btn-primary {
+    /* Yellow button - keep dark text even in dark mode for contrast */
+    color: #1F2937 !important;
+  }
+  
+  .btn-secondary,
+  .btn-accent,
+  .btn-error,
+  .btn-info,
+  .btn-success,
+  .btn-warning,
+  .btn-neutral {
+    /* All colored buttons - white text for contrast */
+    color: #FFFFFF !important;
+  }
+  
+  .btn-ghost {
+    /* Ghost buttons should use light text in dark mode */
+    color: #FFFFFF !important;
+  }
 }
 
 /* Add more horizontal padding to buttons for better spacing */
