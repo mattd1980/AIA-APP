@@ -36,8 +36,6 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
   const [formData, setFormData] = useState({
     itemName: item.itemName,
     category: item.category,
-    brand: item.brand || '',
-    model: item.model || '',
     condition: item.condition,
     estimatedAge: item.estimatedAge?.toString() || '',
     estimatedValue: item.estimatedValue.toString(),
@@ -50,8 +48,6 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       await inventoryApi.updateItem(inventoryId, item.id, {
         itemName: formData.itemName,
         category: formData.category,
-        brand: formData.brand || undefined,
-        model: formData.model || undefined,
         condition: formData.condition,
         estimatedAge: formData.estimatedAge ? parseInt(formData.estimatedAge) : undefined,
         estimatedValue: parseFloat(formData.estimatedValue),
@@ -71,8 +67,6 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
     setFormData({
       itemName: item.itemName,
       category: item.category,
-      brand: item.brand || '',
-      model: item.model || '',
       condition: item.condition,
       estimatedAge: item.estimatedAge?.toString() || '',
       estimatedValue: item.estimatedValue.toString(),
@@ -171,34 +165,6 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="label">
-                  <span className="label-text">Marque</span>
-                </label>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={formData.brand}
-                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                  placeholder="Optionnel"
-                />
-              </div>
-
-              <div>
-                <label className="label">
-                  <span className="label-text">Modèle</span>
-                </label>
-                <input
-                  type="text"
-                  className="input input-bordered w-full"
-                  value={formData.model}
-                  onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                  placeholder="Optionnel"
-                />
-              </div>
-            </div>
-
             <div>
               <label className="label">
                 <span className="label-text">Âge estimé (années)</span>
@@ -254,12 +220,6 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
             <h3 className="card-title text-lg mb-1">{item.itemName}</h3>
-            {item.brand && (
-              <p className="text-sm text-base-content/70">
-                <FontAwesomeIcon icon={faTag} className="mr-1" />
-                {item.brand} {item.model && `- ${item.model}`}
-              </p>
-            )}
           </div>
           <div className="flex gap-2 items-center">
             <span
