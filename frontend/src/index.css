@@ -85,3 +85,27 @@ body {
   padding-left: 2rem !important;
   padding-right: 2rem !important;
 }
+
+/* Prevent content overflow in cards */
+.card {
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+.card-body {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Ensure inputs and textareas don't overflow */
+.input,
+.select,
+.textarea {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure grid items don't overflow */
+.grid > * {
+  min-width: 0;
+}

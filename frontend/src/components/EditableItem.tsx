@@ -93,11 +93,11 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
   if (isEditing) {
     return (
-      <div className="card bg-base-100 border-2 border-primary">
-        <div className="card-body p-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold">Modifier l'item</h3>
-            <div className="flex gap-2">
+      <div className="card bg-base-100 border-2 border-primary overflow-hidden">
+        <div className="card-body p-4 overflow-hidden">
+          <div className="flex justify-between items-center mb-2 gap-2">
+            <h3 className="font-bold break-words min-w-0 flex-1">Modifier l'item</h3>
+            <div className="flex gap-2 flex-shrink-0">
               <button
                 className="btn btn-sm btn-primary"
                 onClick={handleSave}
@@ -214,13 +214,13 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
   }
 
   return (
-    <div className="card bg-base-100 border border-base-300 hover:border-primary transition-colors">
-      <div className="card-body p-4">
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex-1">
-            <h3 className="card-title text-lg mb-1">{item.itemName}</h3>
+    <div className="card bg-base-100 border border-base-300 hover:border-primary transition-colors overflow-hidden">
+      <div className="card-body p-4 overflow-hidden">
+        <div className="flex items-start justify-between mb-2 gap-2">
+          <div className="flex-1 min-w-0">
+            <h3 className="card-title text-lg mb-1 break-words">{item.itemName}</h3>
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-shrink-0">
             <span
               className={`badge ${
                 item.condition === 'excellent'
@@ -348,17 +348,17 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
         <div className="divider my-2"></div>
 
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-base-content/60">Valeur estimée</p>
-            <p className="text-lg font-bold text-primary">
+            <p className="text-lg font-bold text-primary break-words">
               <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
               {item.estimatedValue.toFixed(2)}
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right min-w-0 flex-1">
             <p className="text-xs text-base-content/60">Remplacement</p>
-            <p className="text-lg font-semibold text-secondary">
+            <p className="text-lg font-semibold text-secondary break-words">
               <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
               {item.replacementValue.toFixed(2)}
             </p>
