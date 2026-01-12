@@ -270,7 +270,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
         {/* Display images associated with this item */}
         {item.images && item.images.length > 0 && (
-          <div className="mt-3">
+          <div className="mt-3 mb-3">
             <p className="text-xs text-base-content/60 mb-2">
               <FontAwesomeIcon icon={faImage} className="mr-1" />
               Image(s) source:
@@ -281,7 +281,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
                 return (
                   <div
                     key={image.id}
-                    className="relative group cursor-pointer"
+                    className="relative group cursor-pointer flex-shrink-0"
                     onClick={() => setSelectedImage(image.id)}
                   >
                     {boundingBox ? (
@@ -317,10 +317,10 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         {/* Image Modal */}
         {selectedImage && (
           <div
-            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+            className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
             onClick={() => setSelectedImage(null)}
           >
-            <div className="max-w-4xl max-h-[90vh] p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
               <button
                 className="btn btn-sm btn-circle btn-ghost absolute top-4 right-4 text-white z-10"
                 onClick={() => setSelectedImage(null)}
@@ -332,13 +332,13 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
                   imageUrl={inventoryApi.getImageUrl(inventoryId, selectedImage)}
                   boundingBox={item.aiAnalysis.boundingBox}
                   itemName={item.itemName}
-                  className="max-w-full max-h-[90vh]"
+                  className="max-w-full max-h-[90vh] w-full"
                 />
               ) : (
                 <img
                   src={inventoryApi.getImageUrl(inventoryId, selectedImage)}
                   alt="Full size"
-                  className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                  className="max-w-full max-h-[90vh] w-full object-contain rounded-lg"
                 />
               )}
             </div>
@@ -346,8 +346,8 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         )}
 
         {item.aiAnalysis?.description && (
-          <div className="mt-2">
-            <p className="text-xs text-base-content/50 italic">
+          <div className="mt-3 mb-2">
+            <p className="text-xs text-base-content/50 italic break-words">
               {item.aiAnalysis.description}
             </p>
           </div>

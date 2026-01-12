@@ -94,7 +94,7 @@ export default function ImageWithBoundingBox({
   return (
     <div
       ref={containerRef}
-      className={`relative ${className}`}
+      className={`relative overflow-hidden ${className}`}
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
@@ -102,7 +102,7 @@ export default function ImageWithBoundingBox({
         ref={imgRef}
         src={imageUrl}
         alt={itemName}
-        className="w-full h-auto rounded-lg"
+        className="w-full h-full object-cover rounded-lg"
         onLoad={handleImageLoad}
       />
       {boundingBox && imageLoaded && (
