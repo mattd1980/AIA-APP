@@ -25,9 +25,16 @@ app.use('/api/inventories', reportRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
-// In Railway, root directory is 'backend', so frontend is one level up
-// __dirname is backend/dist when running, so go: dist -> backend -> repo root -> frontend/dist
-const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+// Try multiple possible paths (Railway might structure things differently)
+let frontendDistPath: string;
+const possiblePaths = [
+  path.join(__dirname, '../../frontend/dist'), // backend/dist -> backend -> repo root -> frontend/dist
+  path.join(__dirname, '../../../frontend/dist'), // if running from different location
+  path.join(process.cwd(), '../frontend/dist'), // from current working directory
+];
+
+// Find the first path that exists
+frontendDistPath = possiblePaths.find(p => existsSync(p)) || possiblePaths[0];
 
 // Check if frontend dist exists, log for debugging
 import { existsSync } from 'fs';
