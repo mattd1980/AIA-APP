@@ -124,12 +124,13 @@ router.patch('/:id', async (req, res) => {
 router.post('/:id/images', upload.array('images', 10), async (req, res) => {
   try {
     const files = req.files as Express.Multer.File[];
+    const inventoryId = String(req.params.id);
     
     if (!files || files.length === 0) {
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const result = await inventoryService.addImagesToInventory(req.params.id, files);
+    const result = await inventoryService.addImagesToInventory(inventoryId, files);
     res.json(result);
   } catch (error: any) {
     if (error.message === 'Inventory not found') {
