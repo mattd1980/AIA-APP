@@ -9,7 +9,6 @@ import {
   faEdit,
   faSave,
   faTimes,
-  faImage,
   faUpload,
 } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '../services/api';
