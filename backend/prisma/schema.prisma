@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InventoryStatus {
+  draft
+  processing
+  completed
+  error
+}
+
+enum ItemCategory {
+  furniture
+  electronics
+  clothing
+  appliances
+  decor
+  other
+}
+
+enum ItemCondition {
+  new
+  excellent
+  good
+  fair
+  poor
+}
+
+enum ReportType {
+  pdf
+  json
+  csv
+}
+
+model Inventory {
+  id                          String    @id @default(uuid())
+  status                      InventoryStatus @default(draft)
+  totalEstimatedValue         Decimal   @default(0) @db.Decimal(10, 2)
+  recommendedInsuranceAmount  Decimal   @default(0) @db.Decimal(10, 2)
+  metadata                    Json      @default("{}")
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  
+  items                       InventoryItem[]
+  images                      InventoryImage[]
+  reports                     Report[]
+  
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model InventoryItem {
+  id                String        @id @default(uuid())
+  inventoryId       String
+  category          ItemCategory
+  itemName          String        @db.VarChar(255)
+  brand             String?       @db.VarChar(100)
+  model             String?       @db.VarChar(100)
+  condition         ItemCondition
+  estimatedAge      Int?
+  estimatedValue    Decimal       @default(0) @db.Decimal(10, 2)
+  replacementValue  Decimal       @default(0) @db.Decimal(10, 2)
+  aiAnalysis        Json          @default("{}")
+  priceData         Json          @default("{}")
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  inventory         Inventory     @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  images            InventoryImage[]
+  
+  @@index([inventoryId])
+  @@index([category])
+}
+
+model InventoryImage {
+  id          String    @id @default(uuid())
+  inventoryId String
+  itemId      String?
+  imageData   Bytes
+  imageType   String    @db.VarChar(50)
+  fileName    String    @db.VarChar(255)
+  fileSize    Int
+  uploadOrder Int       @default(0)
+  createdAt   DateTime  @default(now())
+  
+  inventory   Inventory     @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  item        InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  
+  @@index([inventoryId])
+  @@index([itemId])
+}
+
+model Report {
+  id          String     @id @default(uuid())
+  inventoryId String
+  reportType  ReportType @default(pdf)
+  reportData  Bytes
+  generatedAt DateTime   @default(now())
+  
+  inventory   Inventory  @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  
+  @@index([inventoryId])
+}

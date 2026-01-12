@@ -1,0 +1,389 @@
+import prisma from '../database/client';
+import { InventoryStatus, InventoryResponse } from '../types';
+import { openaiService } from './openai.service';
+import { pricingService } from './pricing.service';
+import { calculationService } from './calculation.service';
+
+class InventoryService {
+  async createInventory() {
+    return await prisma.inventory.create({
+      data: {
+        status: 'draft',
+        totalEstimatedValue: 0,
+        recommendedInsuranceAmount: 0,
+        metadata: {},
+      },
+    });
+  }
+
+  async startProcessing(inventoryId: string) {
+    // Update status to processing
+    await prisma.inventory.update({
+      where: { id: inventoryId },
+      data: { status: 'processing' },
+    });
+
+    // Process images asynchronously
+    this.processInventory(inventoryId).catch((error) => {
+      console.error(`Error processing inventory ${inventoryId}:`, error);
+      prisma.inventory.update({
+        where: { id: inventoryId },
+        data: { status: 'error' },
+      });
+    });
+  }
+
+  private async processInventory(inventoryId: string) {
+    // Get all images for this inventory
+    const images = await prisma.inventoryImage.findMany({
+      where: { inventoryId },
+      orderBy: { uploadOrder: 'asc' },
+    });
+
+    console.log(`[Inventory ${inventoryId}] Starting processing of ${images.length} image(s)`);
+
+    let processedImages = 0;
+    let totalItemsFound = 0;
+    const errors: string[] = [];
+
+    // Process each image
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i];
+      try {
+        console.log(`[Inventory ${inventoryId}] Processing image ${i + 1}/${images.length}: ${image.fileName}`);
+        
+        // Update metadata with current processing status
+        await prisma.inventory.update({
+          where: { id: inventoryId },
+          data: {
+            metadata: {
+              processing: {
+                currentImage: i + 1,
+                totalImages: images.length,
+                processedImages,
+                itemsFound: totalItemsFound,
+              },
+            },
+          },
+        });
+
+        // Call OpenAI Vision API
+        const items = await openaiService.analyzeImage(image.imageData, image.imageType);
+        
+        console.log(`[Inventory ${inventoryId}] Image ${i + 1} analysis complete: ${items.length} item(s) found`);
+
+        let firstItemId: string | null = null;
+
+        // For each item, create inventory item (user will enter values manually)
+        for (const itemData of items) {
+          // Create inventory item with source image ID in metadata
+          // User will enter estimated/replacement values manually, so we set them to 0 initially
+          const createdItem = await prisma.inventoryItem.create({
+            data: {
+              inventoryId,
+              category: itemData.category,
+              itemName: itemData.name,
+              brand: itemData.brand,
+              model: itemData.model,
+              condition: itemData.condition,
+              estimatedAge: itemData.estimatedAge,
+              estimatedValue: 0, // User will enter this manually
+              replacementValue: 0, // User will enter this manually
+              aiAnalysis: {
+                description: itemData.description,
+                confidence: 0.85, // Default confidence
+                sourceImageId: image.id, // Store the source image ID
+                boundingBox: itemData.boundingBox, // Store bounding box coordinates
+              },
+              priceData: {}, // Empty since we're not using automatic pricing
+            },
+          });
+
+          // Link the image to the first item created from it
+          // (Since one image can contain multiple items, we link to the first one)
+          if (!firstItemId) {
+            firstItemId = createdItem.id;
+            await prisma.inventoryImage.update({
+              where: { id: image.id },
+              data: { itemId: createdItem.id },
+            });
+          }
+        }
+        
+        processedImages++;
+        totalItemsFound += items.length;
+        console.log(`[Inventory ${inventoryId}] Image ${i + 1} processed successfully: ${items.length} item(s) created`);
+      } catch (error: any) {
+        const errorMessage = error.message || 'Unknown error';
+        console.error(`[Inventory ${inventoryId}] Error processing image ${i + 1} (${image.fileName}):`, errorMessage);
+        errors.push(`Image ${i + 1} (${image.fileName}): ${errorMessage}`);
+      }
+    }
+    
+    console.log(`[Inventory ${inventoryId}] Processing complete: ${processedImages}/${images.length} images processed, ${totalItemsFound} total items found`);
+
+    // Calculate totals
+    const items = await prisma.inventoryItem.findMany({
+      where: { inventoryId },
+    });
+
+    const totalValue = items.reduce((sum, item) => sum + Number(item.replacementValue), 0);
+
+    // Update inventory status
+    const finalMetadata: any = {
+      itemCount: items.length,
+      imageCount: images.length,
+      processedImages,
+      totalItemsFound,
+    };
+
+    if (errors.length > 0) {
+      finalMetadata.errors = errors;
+      console.warn(`[Inventory ${inventoryId}] Completed with ${errors.length} error(s):`, errors);
+    }
+
+    await prisma.inventory.update({
+      where: { id: inventoryId },
+      data: {
+        status: items.length > 0 ? 'completed' : (errors.length > 0 ? 'error' : 'completed'),
+        totalEstimatedValue: totalValue,
+        recommendedInsuranceAmount: totalValue,
+        metadata: finalMetadata,
+      },
+    });
+
+    if (items.length === 0) {
+      console.warn(`[Inventory ${inventoryId}] WARNING: Processing completed but no items were found!`);
+      if (errors.length > 0) {
+        console.warn(`[Inventory ${inventoryId}] Errors encountered:`, errors);
+      }
+    } else {
+      console.log(`[Inventory ${inventoryId}] Successfully completed: ${items.length} item(s), $${totalValue.toFixed(2)} total value`);
+    }
+  }
+
+  async getInventoryById(id: string): Promise<InventoryResponse | null> {
+    const inventory = await prisma.inventory.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            images: {
+              select: {
+                id: true,
+                fileName: true,
+                fileSize: true,
+                uploadOrder: true,
+                createdAt: true,
+              },
+            },
+          },
+        },
+        images: {
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            uploadOrder: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    if (!inventory) return null;
+
+    return {
+      id: inventory.id,
+      status: inventory.status as InventoryStatus,
+      totalEstimatedValue: Number(inventory.totalEstimatedValue),
+      recommendedInsuranceAmount: Number(inventory.recommendedInsuranceAmount),
+      metadata: inventory.metadata as Record<string, any>,
+      createdAt: inventory.createdAt,
+      updatedAt: inventory.updatedAt,
+      items: inventory.items.map((item) => {
+        const aiAnalysis = item.aiAnalysis as Record<string, any>;
+        const sourceImageId = aiAnalysis?.sourceImageId;
+        
+        // Get images: direct relation + source image from metadata
+        const directImages = item.images?.map((img) => ({
+          id: img.id,
+          fileName: img.fileName,
+          fileSize: img.fileSize,
+          uploadOrder: img.uploadOrder,
+          createdAt: img.createdAt,
+        })) || [];
+        
+        // If source image is not in direct images, find it from inventory images
+        let allImages = [...directImages];
+        if (sourceImageId && !directImages.find((img) => img.id === sourceImageId)) {
+          const sourceImage = inventory.images.find((img) => img.id === sourceImageId);
+          if (sourceImage) {
+            allImages.push({
+              id: sourceImage.id,
+              fileName: sourceImage.fileName,
+              fileSize: sourceImage.fileSize,
+              uploadOrder: sourceImage.uploadOrder,
+              createdAt: sourceImage.createdAt,
+            });
+          }
+        }
+        
+        return {
+          id: item.id,
+          category: item.category as any,
+          itemName: item.itemName,
+          brand: item.brand || undefined,
+          model: item.model || undefined,
+          condition: item.condition as any,
+          estimatedAge: item.estimatedAge || undefined,
+          estimatedValue: Number(item.estimatedValue),
+          replacementValue: Number(item.replacementValue),
+          aiAnalysis: aiAnalysis,
+          priceData: item.priceData as Record<string, any>,
+          images: allImages,
+        };
+      }),
+      images: inventory.images.map((img) => ({
+        id: img.id,
+        fileName: img.fileName,
+        fileSize: img.fileSize,
+        uploadOrder: img.uploadOrder,
+        createdAt: img.createdAt,
+      })),
+    };
+  }
+
+  async listInventories(page: number, limit: number, status?: string) {
+    const skip = (page - 1) * limit;
+    const where = status ? { status: status as InventoryStatus } : {};
+
+    const [data, total] = await Promise.all([
+      prisma.inventory.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          status: true,
+          totalEstimatedValue: true,
+          recommendedInsuranceAmount: true,
+          createdAt: true,
+          _count: {
+            select: {
+              items: true,
+            },
+          },
+        },
+      }),
+      prisma.inventory.count({ where }),
+    ]);
+
+    return {
+      data: data.map((inv) => ({
+        id: inv.id,
+        status: inv.status,
+        totalEstimatedValue: Number(inv.totalEstimatedValue),
+        itemCount: inv._count.items,
+        createdAt: inv.createdAt,
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateItem(
+    inventoryId: string,
+    itemId: string,
+    updates: {
+      itemName?: string;
+      category?: string;
+      brand?: string;
+      model?: string;
+      condition?: string;
+      estimatedAge?: number;
+      estimatedValue?: number;
+      replacementValue?: number;
+    }
+  ) {
+    // Verify inventory exists
+    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+    if (!inventory) {
+      throw new Error('Inventory not found');
+    }
+
+    // Verify item exists and belongs to inventory
+    const item = await prisma.inventoryItem.findFirst({
+      where: {
+        id: itemId,
+        inventoryId,
+      },
+    });
+
+    if (!item) {
+      throw new Error('Item not found');
+    }
+
+    // Build update data
+    const updateData: any = {};
+    if (updates.itemName !== undefined) updateData.itemName = updates.itemName;
+    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.brand !== undefined) updateData.brand = updates.brand || null;
+    if (updates.model !== undefined) updateData.model = updates.model || null;
+    if (updates.condition !== undefined) updateData.condition = updates.condition;
+    if (updates.estimatedAge !== undefined) updateData.estimatedAge = updates.estimatedAge || null;
+    if (updates.estimatedValue !== undefined) updateData.estimatedValue = updates.estimatedValue;
+    if (updates.replacementValue !== undefined) updateData.replacementValue = updates.replacementValue;
+
+    // Update item
+    const updatedItem = await prisma.inventoryItem.update({
+      where: { id: itemId },
+      data: updateData,
+    });
+
+    // Recalculate inventory totals
+    const allItems = await prisma.inventoryItem.findMany({
+      where: { inventoryId },
+    });
+
+    const totalValue = allItems.reduce((sum, item) => sum + Number(item.replacementValue), 0);
+
+    await prisma.inventory.update({
+      where: { id: inventoryId },
+      data: {
+        totalEstimatedValue: totalValue,
+        recommendedInsuranceAmount: totalValue,
+      },
+    });
+
+    return {
+      id: updatedItem.id,
+      category: updatedItem.category,
+      itemName: updatedItem.itemName,
+      brand: updatedItem.brand || undefined,
+      model: updatedItem.model || undefined,
+      condition: updatedItem.condition,
+      estimatedAge: updatedItem.estimatedAge || undefined,
+      estimatedValue: Number(updatedItem.estimatedValue),
+      replacementValue: Number(updatedItem.replacementValue),
+      aiAnalysis: updatedItem.aiAnalysis as Record<string, any>,
+      priceData: updatedItem.priceData as Record<string, any>,
+    };
+  }
+
+  async deleteInventory(id: string) {
+    const inventory = await prisma.inventory.findUnique({ where: { id } });
+    if (!inventory) {
+      throw new Error('Inventory not found');
+    }
+
+    await prisma.inventory.delete({ where: { id } });
+  }
+}
+
+export const inventoryService = new InventoryService();

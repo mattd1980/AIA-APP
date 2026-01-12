@@ -30,14 +30,15 @@ Automatiser l'inventaire des biens meubles d'un locataire en utilisant:
 
 ## 📋 Fonctionnalités MVP
 
-- [x] Upload multiple d'images
-- [ ] Identification automatique d'objets via OpenAI Vision
-- [ ] Reconnaissance de marques et modèles
-- [ ] Évaluation de l'état et de l'âge
-- [ ] Recherche de prix via DataForSEO/SERP
-- [ ] Calcul de valeur de remplacement avec dépréciation
-- [ ] Génération de rapport PDF
-- [ ] Interface admin pour gestion des inventaires
+- [x] Upload multiple d'images (drag & drop)
+- [x] Identification automatique d'objets via OpenAI Vision
+- [x] Reconnaissance de marques et modèles (basique)
+- [x] Évaluation de l'état et de l'âge
+- [x] Recherche de prix via DataForSEO/SERP (mock pour MVP)
+- [x] Calcul de valeur de remplacement avec dépréciation
+- [x] Génération de rapport PDF
+- [x] Interface admin pour gestion des inventaires
+- [x] **✅ MVP COMPLET ET TESTÉ**
 
 ## 📁 Structure du Projet
 
@@ -67,10 +68,11 @@ project-root/
 - [Spécification Technique](./docs/TECHNICAL_SPECIFICATION.md)
 - [Documentation API](./docs/API_DOCUMENTATION.md)
 - [Guide de Déploiement](./docs/DEPLOYMENT.md)
-- [Schéma de Base de Données](./docs/DATABASE_SCHEMA.md)
+- [Schéma de Base de Données](./docs/dbschema.md)
 - [Guide UI/UX](./docs/UI.md)
 - [Stratégie de Tests](./docs/test.md)
-- [Setup GitHub](./docs/GITHUB_SETUP.md)
+- [MVP Complet](./docs/MVP_COMPLETE.md) - **Statut du MVP**
+- [Setup Base de Données](./docs/SETUP_DATABASE.md) - **Configuration DB**
 
 ## 🔧 Installation Locale
 
@@ -84,10 +86,22 @@ project-root/
 ```bash
 cd backend
 npm install
-cp .env.example .env
-# Configurer les variables d'environnement
+
+# 1. Créer la base de données (voir docs/SETUP_DATABASE.md)
+# Option A: Utiliser le script PowerShell
+.\scripts\create-db.ps1
+
+# Option B: Créer manuellement
+# psql -U postgres -c "CREATE DATABASE aia_app;"
+
+# 2. Configurer .env avec DATABASE_URL correcte
+# DATABASE_URL="postgresql://postgres:123@localhost:5432/aia_app?schema=public"
+
+# 3. Exécuter les migrations
 npx prisma migrate dev
 npx prisma generate
+
+# 4. Démarrer le serveur
 npm run dev
 ```
 
