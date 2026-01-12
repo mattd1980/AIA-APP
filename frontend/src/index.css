@@ -44,8 +44,9 @@ body {
   color: inherit !important;
 }
 
-/* Dark mode specific overrides */
-@media (prefers-color-scheme: dark) {
+/* Dark mode specific overrides - handle both media query and DaisyUI theme attribute */
+@media (prefers-color-scheme: dark),
+[data-theme="dark"] {
   /* In dark mode, ensure all buttons have proper contrast */
   .btn-primary {
     /* Yellow button - keep dark text even in dark mode for contrast */
