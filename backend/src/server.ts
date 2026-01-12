@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
+import { existsSync } from 'fs';
 import inventoryRoutes from './routes/inventories';
 import healthRoutes from './routes/health';
 import reportRoutes from './routes/reports';
@@ -26,7 +27,6 @@ app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
 // Try multiple possible paths (Railway might structure things differently)
-let frontendDistPath: string;
 const possiblePaths = [
   path.join(__dirname, '../../frontend/dist'), // backend/dist -> backend -> repo root -> frontend/dist
   path.join(__dirname, '../../../frontend/dist'), // if running from different location
@@ -34,10 +34,9 @@ const possiblePaths = [
 ];
 
 // Find the first path that exists
-frontendDistPath = possiblePaths.find(p => existsSync(p)) || possiblePaths[0];
+const frontendDistPath = possiblePaths.find(p => existsSync(p)) || possiblePaths[0];
 
 // Check if frontend dist exists, log for debugging
-import { existsSync } from 'fs';
 if (existsSync(frontendDistPath)) {
   console.log(`✅ Frontend dist found at: ${frontendDistPath}`);
   app.use(express.static(frontendDistPath));
