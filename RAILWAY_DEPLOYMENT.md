@@ -16,7 +16,9 @@ This guide will help you deploy the AIA-APP backend to Railway.
 2. Click "New Project"
 3. Select "Deploy from GitHub repo"
 4. Choose your repository: `mattd1980/AIA-APP`
-5. Railway will detect the `backend` folder automatically
+5. **IMPORTANT**: After connecting the repo, go to your service settings
+6. In "Settings" → "Source", set the **Root Directory** to: `backend`
+7. This tells Railway to use the `backend` folder as the project root
 
 ### 2. Add PostgreSQL Database
 
