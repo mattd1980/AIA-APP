@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTag, faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '../services/api';
 import type { InventoryItem } from '../services/api';
 import ImageWithBoundingBox from './ImageWithBoundingBox';
