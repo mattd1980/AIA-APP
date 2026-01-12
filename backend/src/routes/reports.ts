@@ -199,8 +199,6 @@ router.post('/:inventoryId/report', async (req, res) => {
               
               doc.image(annotatedImage, undefined, undefined, {
                 fit: [pdfImageWidth, pdfImageHeight],
-                align: 'left',
-                valign: 'top',
               });
               
               doc.moveDown(0.5);
