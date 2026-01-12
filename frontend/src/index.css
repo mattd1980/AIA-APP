@@ -10,3 +10,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Ensure button text is always readable */
+.btn-primary {
+  color: var(--fallback-pc, #1F2937) !important;
+}
+
+.btn-secondary,
+.btn-accent,
+.btn-error,
+.btn-info,
+.btn-success,
+.btn-warning {
+  color: var(--fallback-bc, #FFFFFF) !important;
+}
+
+/* Fix disabled button contrast */
+.btn:disabled,
+.btn-disabled {
+  opacity: 0.6;
+  color: inherit !important;
+}
