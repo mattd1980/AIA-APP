@@ -93,7 +93,12 @@ class InventoryService {
                 description: itemData.description,
                 confidence: 0.85, // Default confidence
                 sourceImageId: image.id, // Store the source image ID
-                boundingBox: itemData.boundingBox, // Store bounding box coordinates
+                boundingBox: itemData.boundingBox ? {
+                  x: itemData.boundingBox.x,
+                  y: itemData.boundingBox.y,
+                  width: itemData.boundingBox.width,
+                  height: itemData.boundingBox.height,
+                } : undefined, // Convert to plain object for Prisma JSON
               },
               priceData: {}, // Empty since we're not using automatic pricing
             },

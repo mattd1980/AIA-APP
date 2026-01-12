@@ -90,6 +90,7 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
               {
                 type: 'input_image',
                 image_url: imageDataUrl,
+                detail: 'high',
               },
             ],
           },

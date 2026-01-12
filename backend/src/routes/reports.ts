@@ -50,7 +50,7 @@ router.post('/:inventoryId/report', async (req, res) => {
     const doc = new PDFDocument();
     const chunks: Buffer[] = [];
 
-    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', async () => {
       try {
         const pdfBuffer = Buffer.concat(chunks);
@@ -81,7 +81,7 @@ router.post('/:inventoryId/report', async (req, res) => {
       }
     });
     
-    doc.on('error', (error) => {
+    doc.on('error', (error: Error) => {
       console.error('PDF generation error:', error);
       if (!res.headersSent) {
         res.status(500).json({ error: 'Error generating PDF report' });
