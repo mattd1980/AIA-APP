@@ -197,7 +197,7 @@ router.post('/:inventoryId/report', async (req, res) => {
               const pdfImageWidth = maxWidth;
               const pdfImageHeight = imageHeight * scale;
               
-              doc.image(annotatedImage, {
+              doc.image(annotatedImage, undefined, undefined, {
                 fit: [pdfImageWidth, pdfImageHeight],
                 align: 'left',
                 valign: 'top',
