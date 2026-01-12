@@ -25,8 +25,8 @@ app.use('/api/inventories', reportRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
-// In Railway, backend is the root, so frontend is one level up
-const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
+// __dirname is backend/dist, so go up to repo root, then into frontend/dist
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
 app.use(express.static(frontendDistPath));
 
 // Serve frontend for all non-API routes (SPA routing)
