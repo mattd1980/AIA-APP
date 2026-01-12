@@ -37,7 +37,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
     itemName: item.itemName,
     category: item.category,
     condition: item.condition,
-    estimatedAge: item.estimatedAge?.toString() || '',
+    notes: item.notes || '',
     estimatedValue: item.estimatedValue.toString(),
     replacementValue: item.replacementValue.toString(),
   });
@@ -49,7 +49,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         itemName: formData.itemName,
         category: formData.category,
         condition: formData.condition,
-        estimatedAge: formData.estimatedAge ? parseInt(formData.estimatedAge) : undefined,
+        notes: formData.notes || undefined,
         estimatedValue: parseFloat(formData.estimatedValue),
         replacementValue: parseFloat(formData.replacementValue),
       });
@@ -68,7 +68,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       itemName: item.itemName,
       category: item.category,
       condition: item.condition,
-      estimatedAge: item.estimatedAge?.toString() || '',
+      notes: item.notes || '',
       estimatedValue: item.estimatedValue.toString(),
       replacementValue: item.replacementValue.toString(),
     });
@@ -167,15 +167,14 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
             <div>
               <label className="label">
-                <span className="label-text">Âge estimé (années)</span>
+                <span className="label-text">Notes</span>
               </label>
-              <input
-                type="number"
-                className="input input-bordered w-full"
-                value={formData.estimatedAge}
-                onChange={(e) => setFormData({ ...formData, estimatedAge: e.target.value })}
-                placeholder="Optionnel"
-                min="0"
+              <textarea
+                className="textarea textarea-bordered w-full"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Ajoutez des notes sur cet item (optionnel)"
+                rows={3}
               />
             </div>
 
@@ -366,10 +365,13 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
           </div>
         </div>
 
-        {item.estimatedAge !== undefined && (
-          <p className="text-xs text-base-content/50 mt-1">
-            Âge estimé: {item.estimatedAge} an(s)
-          </p>
+        {item.notes && (
+          <div className="mt-2">
+            <p className="text-xs text-base-content/60 font-semibold mb-1">Notes:</p>
+            <p className="text-sm text-base-content/70 break-words whitespace-pre-wrap">
+              {item.notes}
+            </p>
+          </div>
         )}
       </div>
     </div>

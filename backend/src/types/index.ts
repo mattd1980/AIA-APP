@@ -32,6 +32,7 @@ export interface InventoryItemResponse {
   model?: string;
   condition: ItemCondition;
   estimatedAge?: number;
+  notes?: string;
   estimatedValue: number;
   replacementValue: number;
   aiAnalysis: Record<string, any>;

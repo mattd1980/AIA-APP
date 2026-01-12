@@ -28,6 +28,7 @@ export type InventoryItem = {
   model?: string;
   condition: string;
   estimatedAge?: number;
+  notes?: string;
   estimatedValue: number;
   replacementValue: number;
   aiAnalysis?: {

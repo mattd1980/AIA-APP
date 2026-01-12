@@ -242,6 +242,7 @@ class InventoryService {
           model: item.model || undefined,
           condition: item.condition as any,
           estimatedAge: item.estimatedAge || undefined,
+          notes: item.notes || undefined,
           estimatedValue: Number(item.estimatedValue),
           replacementValue: Number(item.replacementValue),
           aiAnalysis: aiAnalysis,
@@ -312,6 +313,7 @@ class InventoryService {
       model?: string;
       condition?: string;
       estimatedAge?: number;
+      notes?: string;
       estimatedValue?: number;
       replacementValue?: number;
     }
@@ -342,6 +344,7 @@ class InventoryService {
     if (updates.model !== undefined) updateData.model = updates.model || null;
     if (updates.condition !== undefined) updateData.condition = updates.condition;
     if (updates.estimatedAge !== undefined) updateData.estimatedAge = updates.estimatedAge || null;
+    if (updates.notes !== undefined) updateData.notes = updates.notes || null;
     if (updates.estimatedValue !== undefined) updateData.estimatedValue = updates.estimatedValue;
     if (updates.replacementValue !== undefined) updateData.replacementValue = updates.replacementValue;
 
@@ -374,6 +377,7 @@ class InventoryService {
       model: updatedItem.model || undefined,
       condition: updatedItem.condition,
       estimatedAge: updatedItem.estimatedAge || undefined,
+      notes: updatedItem.notes || undefined,
       estimatedValue: Number(updatedItem.estimatedValue),
       replacementValue: Number(updatedItem.replacementValue),
       aiAnalysis: updatedItem.aiAnalysis as Record<string, any>,
