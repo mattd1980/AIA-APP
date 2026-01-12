@@ -123,6 +123,10 @@ export const inventoryApi = {
     return response.data;
   },
 
+  deleteItem: async (inventoryId: string, itemId: string): Promise<void> => {
+    await api.delete(`/api/inventories/${inventoryId}/items/${itemId}`);
+  },
+
   getImageUrl: (inventoryId: string, imageId: string): string => {
     return `${API_URL}/api/inventories/${inventoryId}/images/${imageId}`;
   },

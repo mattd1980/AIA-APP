@@ -123,6 +123,20 @@ router.patch('/:id/items/:itemId', async (req, res) => {
   }
 });
 
+// DELETE /api/inventories/:id/items/:itemId - Delete inventory item
+router.delete('/:id/items/:itemId', async (req, res) => {
+  try {
+    await inventoryService.deleteItem(req.params.id, req.params.itemId);
+    res.json({ message: 'Item deleted successfully' });
+  } catch (error: any) {
+    if (error.message === 'Inventory not found' || error.message === 'Item not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error deleting item:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
 // DELETE /api/inventories/:id - Delete inventory
 router.delete('/:id', async (req, res) => {
   try {

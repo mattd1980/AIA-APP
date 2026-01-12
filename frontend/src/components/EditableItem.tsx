@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTag, faDollarSign, faEdit, faSave, faTimes, faImage } from '@fortawesome/free-solid-svg-icons';
+import { faTag, faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '../services/api';
 import type { InventoryItem } from '../services/api';
 import ImageWithBoundingBox from './ImageWithBoundingBox';
@@ -31,6 +31,7 @@ const conditions = [
 export default function EditableItem({ item, inventoryId, onUpdate }: EditableItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     itemName: item.itemName,
@@ -78,6 +79,22 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       replacementValue: item.replacementValue.toString(),
     });
     setIsEditing(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${item.itemName}" ? Cette action est irréversible.`)) {
+      return;
+    }
+
+    try {
+      setDeleting(true);
+      await inventoryApi.deleteItem(inventoryId, item.id);
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('Erreur lors de la suppression de l\'item');
+      setDeleting(false);
+    }
   };
 
   if (isEditing) {
@@ -234,7 +251,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
   return (
     <div className="card bg-base-100 border border-base-300 hover:border-primary transition-colors">
       <div className="card-body p-4">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between mb-2">
           <div className="flex-1">
             <h3 className="card-title text-lg mb-1">{item.itemName}</h3>
             {item.brand && (
@@ -244,7 +261,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <span
               className={`badge ${
                 item.condition === 'excellent'
@@ -258,14 +275,31 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
             >
               {conditions.find((c) => c.value === item.condition)?.label || item.condition}
             </span>
-            <button
-              className="btn btn-sm btn-ghost"
-              onClick={() => setIsEditing(true)}
-              title="Modifier"
-            >
-              <FontAwesomeIcon icon={faEdit} />
-            </button>
           </div>
+        </div>
+
+        {/* Action buttons - always visible */}
+        <div className="flex gap-2 mb-3">
+          <button
+            className="btn btn-sm btn-primary flex-1"
+            onClick={() => setIsEditing(true)}
+            disabled={deleting}
+          >
+            <FontAwesomeIcon icon={faEdit} className="mr-2" />
+            Modifier
+          </button>
+          <button
+            className="btn btn-sm btn-error"
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Supprimer"
+          >
+            {deleting ? (
+              <span className="loading loading-spinner loading-sm"></span>
+            ) : (
+              <FontAwesomeIcon icon={faTrash} />
+            )}
+          </button>
         </div>
 
         {/* Display images associated with this item */}

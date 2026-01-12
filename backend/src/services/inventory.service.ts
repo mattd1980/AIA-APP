@@ -381,6 +381,46 @@ class InventoryService {
     };
   }
 
+  async deleteItem(inventoryId: string, itemId: string) {
+    // Verify inventory exists
+    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+    if (!inventory) {
+      throw new Error('Inventory not found');
+    }
+
+    // Verify item exists and belongs to inventory
+    const item = await prisma.inventoryItem.findFirst({
+      where: {
+        id: itemId,
+        inventoryId,
+      },
+    });
+
+    if (!item) {
+      throw new Error('Item not found');
+    }
+
+    // Delete the item (cascade will handle related images)
+    await prisma.inventoryItem.delete({
+      where: { id: itemId },
+    });
+
+    // Recalculate inventory totals
+    const allItems = await prisma.inventoryItem.findMany({
+      where: { inventoryId },
+    });
+
+    const totalValue = allItems.reduce((sum, item) => sum + Number(item.replacementValue), 0);
+
+    await prisma.inventory.update({
+      where: { id: inventoryId },
+      data: {
+        totalEstimatedValue: totalValue,
+        recommendedInsuranceAmount: totalValue,
+      },
+    });
+  }
+
   async deleteInventory(id: string) {
     const inventory = await prisma.inventory.findUnique({ where: { id } });
     if (!inventory) {
