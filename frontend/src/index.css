@@ -11,9 +11,10 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Ensure button text is always readable */
+/* Ensure button text is always readable with proper contrast */
+/* Use CSS variables from DaisyUI theme which automatically adapts to light/dark mode */
 .btn-primary {
-  color: var(--fallback-pc, #1F2937) !important;
+  color: hsl(var(--pc)) !important;
 }
 
 .btn-secondary,
@@ -22,7 +23,32 @@ body {
 .btn-info,
 .btn-success,
 .btn-warning {
-  color: var(--fallback-bc, #FFFFFF) !important;
+  color: hsl(var(--sc)) !important;
+}
+
+/* Fallback for buttons that might not have content colors set */
+.btn-secondary {
+  color: hsl(var(--sc, 0 0% 100%)) !important;
+}
+
+.btn-accent {
+  color: hsl(var(--ac, 0 0% 100%)) !important;
+}
+
+.btn-error {
+  color: hsl(var(--erc, 0 0% 100%)) !important;
+}
+
+.btn-info {
+  color: hsl(var(--inc, 0 0% 100%)) !important;
+}
+
+.btn-success {
+  color: hsl(var(--suc, 0 0% 100%)) !important;
+}
+
+.btn-warning {
+  color: hsl(var(--wac, 0 0% 100%)) !important;
 }
 
 /* Fix disabled button contrast */
@@ -30,6 +56,16 @@ body {
 .btn-disabled {
   opacity: 0.6;
   color: inherit !important;
+}
+
+/* Ensure ghost buttons have readable text in dark mode */
+.btn-ghost {
+  color: hsl(var(--bc)) !important;
+}
+
+/* Ensure neutral buttons have proper contrast */
+.btn-neutral {
+  color: hsl(var(--nc, 0 0% 100%)) !important;
 }
 
 /* Add more horizontal padding to buttons for better spacing */
