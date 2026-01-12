@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function Upload() {
   const [files, setFiles] = useState<File[]>([]);
+  const [inventoryName, setInventoryName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
@@ -136,7 +137,7 @@ export default function Upload() {
 
     try {
       setUploading(true);
-      const inventory = await inventoryApi.create(files);
+      const inventory = await inventoryApi.create(files, inventoryName || undefined);
       navigate(`/inventory/${inventory.id}`);
     } catch (error: any) {
       console.error('Error uploading:', error);
@@ -185,6 +186,23 @@ export default function Upload() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Nouvel Inventaire</h1>
+
+      <div className="card bg-base-100 shadow-md mb-4">
+        <div className="card-body">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text">Nom de l'inventaire (optionnel)</span>
+            </label>
+            <input
+              type="text"
+              className="input input-bordered w-full"
+              placeholder="Ex: Maison principale, Salon, Chambre..."
+              value={inventoryName}
+              onChange={(e) => setInventoryName(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
 
       {/* Boutons d'action rapide pour mobile */}
       {isMobile && (

@@ -3,11 +3,13 @@ import { InventoryStatus, InventoryResponse } from '../types';
 import { openaiService } from './openai.service';
 import { pricingService } from './pricing.service';
 import { calculationService } from './calculation.service';
+import { imageService } from './image.service';
 
 class InventoryService {
-  async createInventory() {
+  async createInventory(name?: string) {
     return await prisma.inventory.create({
       data: {
+        name: name || null,
         status: 'draft',
         totalEstimatedValue: 0,
         recommendedInsuranceAmount: 0,
@@ -200,6 +202,7 @@ class InventoryService {
 
     return {
       id: inventory.id,
+      name: inventory.name || undefined,
       status: inventory.status as InventoryStatus,
       totalEstimatedValue: Number(inventory.totalEstimatedValue),
       recommendedInsuranceAmount: Number(inventory.recommendedInsuranceAmount),
@@ -272,6 +275,7 @@ class InventoryService {
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
+          name: true,
           status: true,
           totalEstimatedValue: true,
           recommendedInsuranceAmount: true,
@@ -289,6 +293,7 @@ class InventoryService {
     return {
       data: data.map((inv) => ({
         id: inv.id,
+        name: (inv as any).name || undefined,
         status: inv.status,
         totalEstimatedValue: Number(inv.totalEstimatedValue),
         itemCount: inv._count.items,
@@ -423,6 +428,49 @@ class InventoryService {
         recommendedInsuranceAmount: totalValue,
       },
     });
+  }
+
+  async updateInventory(id: string, updates: { name?: string }) {
+    const inventory = await prisma.inventory.findUnique({ where: { id } });
+    if (!inventory) {
+      throw new Error('Inventory not found');
+    }
+
+    const updateData: any = {};
+    if (updates.name !== undefined) updateData.name = updates.name || null;
+
+    return await prisma.inventory.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async addImagesToInventory(inventoryId: string, files: Express.Multer.File[]) {
+    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+    if (!inventory) {
+      throw new Error('Inventory not found');
+    }
+
+    // Get current max uploadOrder
+    const existingImages = await prisma.inventoryImage.findMany({
+      where: { inventoryId },
+      orderBy: { uploadOrder: 'desc' },
+      take: 1,
+    });
+
+    const startOrder = existingImages.length > 0 ? existingImages[0].uploadOrder + 1 : 0;
+
+    // Save new images
+    for (let i = 0; i < files.length; i++) {
+      await imageService.saveImage(inventoryId, files[i], startOrder + i);
+    }
+
+    // If inventory is completed, restart processing with new images
+    if (inventory.status === 'completed') {
+      await this.startProcessing(inventoryId);
+    }
+
+    return { message: `${files.length} image(s) added successfully` };
   }
 
   async deleteInventory(id: string) {

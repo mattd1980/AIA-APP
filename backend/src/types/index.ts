@@ -14,6 +14,7 @@ export interface UpdateInventoryDto {
 
 export interface InventoryResponse {
   id: string;
+  name?: string;
   status: InventoryStatus;
   totalEstimatedValue: number;
   recommendedInsuranceAmount: number;

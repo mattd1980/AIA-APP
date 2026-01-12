@@ -24,12 +24,13 @@ const upload = multer({
 router.post('/', upload.array('images', 10), async (req, res) => {
   try {
     const files = req.files as Express.Multer.File[];
+    const name = req.body.name as string | undefined;
     
     if (!files || files.length === 0) {
       return res.status(400).json({ error: 'No images provided' });
     }
 
-    const inventory = await inventoryService.createInventory();
+    const inventory = await inventoryService.createInventory(name);
     
     // Save images
     for (let i = 0; i < files.length; i++) {
@@ -101,6 +102,40 @@ router.get('/:id/images/:imageId', async (req, res) => {
     res.send(image.imageData);
   } catch (error: any) {
     console.error('Error fetching image:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// PATCH /api/inventories/:id - Update inventory
+router.patch('/:id', async (req, res) => {
+  try {
+    const updatedInventory = await inventoryService.updateInventory(req.params.id, req.body);
+    res.json(updatedInventory);
+  } catch (error: any) {
+    if (error.message === 'Inventory not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error updating inventory:', error);
+    res.status(500).json({ error: error.message || 'Internal server error' });
+  }
+});
+
+// POST /api/inventories/:id/images - Add images to existing inventory
+router.post('/:id/images', upload.array('images', 10), async (req, res) => {
+  try {
+    const files = req.files as Express.Multer.File[];
+    
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No images provided' });
+    }
+
+    const result = await inventoryService.addImagesToInventory(req.params.id, files);
+    res.json(result);
+  } catch (error: any) {
+    if (error.message === 'Inventory not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error adding images to inventory:', error);
     res.status(500).json({ error: error.message || 'Internal server error' });
   }
 });

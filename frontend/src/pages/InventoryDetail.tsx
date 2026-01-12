@@ -6,6 +6,11 @@ import {
   faSpinner,
   faFilePdf,
   faArrowLeft,
+  faEdit,
+  faSave,
+  faTimes,
+  faImage,
+  faUpload,
 } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '../services/api';
 import type { InventoryDetail as InventoryDetailType } from '../services/api';
@@ -17,6 +22,11 @@ export default function InventoryDetail() {
   const [inventory, setInventory] = useState<InventoryDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [generatingReport, setGeneratingReport] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [inventoryName, setInventoryName] = useState('');
+  const [savingName, setSavingName] = useState(false);
+  const [addingImages, setAddingImages] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const inventoryRef = useRef<InventoryDetailType | null>(null);
 
   useEffect(() => {
@@ -50,6 +60,7 @@ export default function InventoryDetail() {
       }
       const data = await inventoryApi.getById(id);
       setInventory(data);
+      setInventoryName(data.name || '');
     } catch (error) {
       console.error('Error loading inventory:', error);
       // Only show alert on initial load, not during polling
@@ -60,6 +71,38 @@ export default function InventoryDetail() {
       if (showLoading) {
         setLoading(false);
       }
+    }
+  };
+
+  const handleSaveName = async () => {
+    if (!id) return;
+    try {
+      setSavingName(true);
+      await inventoryApi.update(id, { name: inventoryName || undefined });
+      setEditingName(false);
+      loadInventory(false);
+    } catch (error) {
+      console.error('Error updating inventory name:', error);
+      alert('Erreur lors de la mise à jour du nom');
+    } finally {
+      setSavingName(false);
+    }
+  };
+
+  const handleAddImages = async (files: File[]) => {
+    if (!id || files.length === 0) return;
+    try {
+      setAddingImages(true);
+      await inventoryApi.addImages(id, files);
+      loadInventory(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('Error adding images:', error);
+      alert('Erreur lors de l\'ajout des images');
+    } finally {
+      setAddingImages(false);
     }
   };
 
@@ -115,10 +158,50 @@ export default function InventoryDetail() {
 
       <div className="card bg-base-100 shadow-lg mb-6">
         <div className="card-body">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">
-              Inventaire #{inventory.id.slice(0, 8)}
-            </h1>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex-1 min-w-0">
+              {editingName ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    className="input input-bordered flex-1"
+                    value={inventoryName}
+                    onChange={(e) => setInventoryName(e.target.value)}
+                    placeholder="Nom de l'inventaire"
+                  />
+                  <button
+                    className="btn btn-sm btn-primary"
+                    onClick={handleSaveName}
+                    disabled={savingName}
+                  >
+                    <FontAwesomeIcon icon={faSave} />
+                  </button>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => {
+                      setEditingName(false);
+                      setInventoryName(inventory.name || '');
+                    }}
+                    disabled={savingName}
+                  >
+                    <FontAwesomeIcon icon={faTimes} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-bold break-words">
+                    {inventory.name || `Inventaire #${inventory.id.slice(0, 8)}`}
+                  </h1>
+                  <button
+                    className="btn btn-sm btn-ghost"
+                    onClick={() => setEditingName(true)}
+                    title="Modifier le nom"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </button>
+                </div>
+              )}
+            </div>
             <span className={`badge ${
               inventory.status === 'completed' ? 'badge-success' :
               inventory.status === 'processing' ? 'badge-primary' :
@@ -149,8 +232,38 @@ export default function InventoryDetail() {
             </div>
           </div>
 
-          {inventory.status === 'completed' && (
-            <div className="mt-4">
+          <div className="mt-4 flex gap-2 flex-wrap">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) {
+                  handleAddImages(files);
+                }
+              }}
+            />
+            <button
+              className="btn btn-secondary"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={addingImages}
+            >
+              {addingImages ? (
+                <>
+                  <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+                  Ajout...
+                </>
+              ) : (
+                <>
+                  <FontAwesomeIcon icon={faUpload} className="mr-2" />
+                  Ajouter des images
+                </>
+              )}
+            </button>
+            {inventory.status === 'completed' && (
               <button
                 className="btn btn-primary"
                 onClick={handleGenerateReport}
@@ -168,8 +281,8 @@ export default function InventoryDetail() {
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

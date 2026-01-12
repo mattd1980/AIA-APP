@@ -31,7 +31,7 @@ export default function InventoryCard({ inventory, onDelete }: InventoryCardProp
         <div className="flex items-center justify-between">
           <h2 className="card-title text-xl">
             {getStatusIcon(inventory.status)}
-            <span className="ml-2">Inventaire #{inventory.id.slice(0, 8)}</span>
+            <span className="ml-2">{inventory.name || `Inventaire #${inventory.id.slice(0, 8)}`}</span>
           </h2>
           <span className={`badge ${getStatusBadge(inventory.status)}`}>
             {inventory.status}

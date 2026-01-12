@@ -12,6 +12,7 @@ const api = axios.create({
 
 export type Inventory = {
   id: string;
+  name?: string;
   status: 'draft' | 'processing' | 'completed' | 'error';
   totalEstimatedValue: number;
   recommendedInsuranceAmount: number;
@@ -61,13 +62,35 @@ export type InventoryDetail = Inventory & {
 };
 
 export const inventoryApi = {
-  create: async (files: File[]): Promise<Inventory> => {
+  create: async (files: File[], name?: string): Promise<Inventory> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('images', file);
+    });
+    if (name) {
+      formData.append('name', name);
+    }
+
+    const response = await api.post<Inventory>('/api/inventories', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  update: async (id: string, updates: { name?: string }): Promise<Inventory> => {
+    const response = await api.patch<Inventory>(`/api/inventories/${id}`, updates);
+    return response.data;
+  },
+
+  addImages: async (id: string, files: File[]): Promise<{ message: string }> => {
     const formData = new FormData();
     files.forEach((file) => {
       formData.append('images', file);
     });
 
-    const response = await api.post<Inventory>('/api/inventories', formData, {
+    const response = await api.post<{ message: string }>(`/api/inventories/${id}/images`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
