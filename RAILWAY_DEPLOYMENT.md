@@ -20,11 +20,23 @@ This guide will help you deploy the AIA-APP backend to Railway.
 6. In "Settings" → "Source", set the **Root Directory** to: `backend`
 7. This tells Railway to use the `backend` folder as the project root
 
-### 2. Add PostgreSQL Database
+### 2. Add PostgreSQL Database ⚠️ REQUIRED
+
+**IMPORTANT:** You MUST add a PostgreSQL database before the app can start!
 
 1. In your Railway project, click "New"
 2. Select "Database" → "Add PostgreSQL"
 3. Railway will automatically create the database and set `DATABASE_URL` environment variable
+4. **Link the database to your backend service:**
+   - Click on your backend service
+   - Go to "Variables" tab
+   - You should see `DATABASE_URL` automatically added (it references the PostgreSQL service)
+   - If you don't see it, click "New Variable" and reference the PostgreSQL service's `DATABASE_URL`
+
+**If you see "DATABASE_URL not found" errors:**
+- Make sure you've added a PostgreSQL database service
+- Make sure the database service is in the same Railway project
+- The `DATABASE_URL` should appear automatically in your backend service's variables
 
 ### 3. Configure Environment Variables
 

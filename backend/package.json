@@ -16,7 +16,7 @@
     "prisma:studio": "prisma studio",
     "migrate:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
-    "railway": "prisma migrate deploy && npm start"
+    "railway": "node scripts/railway-start.js"
   },
   "keywords": [],
   "author": "",
