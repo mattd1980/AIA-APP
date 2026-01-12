@@ -28,31 +28,38 @@ export default function InventoryDetail() {
   useEffect(() => {
     if (!id) return;
     
-    loadInventory();
+    loadInventory(true); // Initial load with loading state
     
     // Poll for updates if processing
     const interval = setInterval(() => {
       // Only poll if status is processing
       if (inventoryRef.current?.status === 'processing') {
-        loadInventory();
+        loadInventory(false); // Polling without loading state
       }
     }, 3000);
     
     return () => clearInterval(interval);
   }, [id]);
 
-  const loadInventory = async () => {
+  const loadInventory = async (showLoading = false) => {
     if (!id) return;
 
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const data = await inventoryApi.getById(id);
       setInventory(data);
     } catch (error) {
       console.error('Error loading inventory:', error);
-      alert('Erreur lors du chargement de l\'inventaire');
+      // Only show alert on initial load, not during polling
+      if (showLoading) {
+        alert('Erreur lors du chargement de l\'inventaire');
+      }
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
