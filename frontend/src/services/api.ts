@@ -17,6 +17,7 @@ export type Inventory = {
   recommendedInsuranceAmount: number;
   createdAt: string;
   itemCount?: number;
+  metadata?: Record<string, any>;
 };
 
 export type InventoryItem = {

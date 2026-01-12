@@ -159,7 +159,7 @@ export default function Upload() {
       newUrls.delete(index);
       // Réindexer les URLs restantes
       const reindexed = new Map<number, string>();
-      files.forEach((file, i) => {
+      files.forEach((_, i) => {
         if (i !== index && i < files.length) {
           const oldIndex = i > index ? i - 1 : i;
           if (prev.has(oldIndex)) {
