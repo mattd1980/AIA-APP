@@ -82,11 +82,31 @@ Update `FRONTEND_URL` in Railway variables with your actual frontend URL.
 
 ## Troubleshooting
 
+### Error: "Error creating build plan with Railpack"
+
+This error means Railway can't detect your project structure. Fix it by:
+
+1. **Verify Root Directory is Set:**
+   - Go to your service → Settings → Source
+   - Ensure **Root Directory** is set to: `backend`
+   - If it's empty or set to `/`, change it to `backend`
+   - Save and redeploy
+
+2. **Check nixpacks.toml exists:**
+   - The file should be at: `backend/nixpacks.toml`
+   - Verify it's committed to GitHub
+
+3. **Alternative: Remove nixpacks.toml and let Railway auto-detect:**
+   - If the above doesn't work, delete `backend/nixpacks.toml`
+   - Railway should auto-detect Node.js from `package.json`
+   - Make sure Root Directory is still set to `backend`
+
 ### Build Fails
 
 - Check Railway logs for errors
 - Ensure `package.json` has correct scripts
 - Verify TypeScript compiles: `npm run build`
+- Check that `package.json` has `engines` field with Node version
 
 ### Database Connection Fails
 
