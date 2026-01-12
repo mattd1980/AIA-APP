@@ -5,7 +5,7 @@ param(
 
 $repoName = "AIA-APP"
 $description = "Application d'Inventaire IA pour Assurance"
-$username = "TomoFilesSoft"
+$username = "mattd1980"
 
 if (-not $Token) {
     Write-Host "❌ GITHUB_TOKEN not found in environment variables" -ForegroundColor Red
