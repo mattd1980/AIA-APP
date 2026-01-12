@@ -25,9 +25,19 @@ app.use('/api/inventories', reportRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
-// __dirname is backend/dist, so go up to repo root, then into frontend/dist
+// In Railway, root directory is 'backend', so frontend is one level up
+// __dirname is backend/dist when running, so go: dist -> backend -> repo root -> frontend/dist
 const frontendDistPath = path.join(__dirname, '../../frontend/dist');
-app.use(express.static(frontendDistPath));
+
+// Check if frontend dist exists, log for debugging
+import { existsSync } from 'fs';
+if (existsSync(frontendDistPath)) {
+  console.log(`✅ Frontend dist found at: ${frontendDistPath}`);
+  app.use(express.static(frontendDistPath));
+} else {
+  console.warn(`⚠️  Frontend dist not found at: ${frontendDistPath}`);
+  console.warn(`   Current __dirname: ${__dirname}`);
+}
 
 // Serve frontend for all non-API routes (SPA routing)
 app.get('*', (req, res) => {
@@ -35,7 +45,19 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
     return res.status(404).json({ error: 'Not found' });
   }
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+  
+  // Try to serve index.html if it exists
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    // Fallback: return API info if frontend not built
+    res.json({ 
+      message: 'AIA Backend API', 
+      version: '1.0.0',
+      note: 'Frontend not found. Make sure frontend is built during deployment.'
+    });
+  }
 });
 
 // Start server
