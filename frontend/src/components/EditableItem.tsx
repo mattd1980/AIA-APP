@@ -119,7 +119,9 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
           <div className="space-y-3">
             <div>
               <label className="label">
-                <span className="label-text">Nom de l'item</span>
+                <span className="label-text tooltip" data-tip="Nom de l'item">
+                  Nom
+                </span>
               </label>
               <input
                 type="text"
@@ -167,7 +169,9 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
             <div>
               <label className="label">
-                <span className="label-text">Notes</span>
+                <span className="label-text tooltip" data-tip="Notes optionnelles sur cet item">
+                  Notes
+                </span>
               </label>
               <textarea
                 className="textarea textarea-bordered w-full"
@@ -181,7 +185,9 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="label">
-                  <span className="label-text">Valeur estimée (CAD)</span>
+                  <span className="label-text tooltip" data-tip="Valeur estimée en dollars canadiens (CAD)">
+                    Valeur estimée
+                  </span>
                 </label>
                 <input
                   type="number"
@@ -195,7 +201,9 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
               <div>
                 <label className="label">
-                  <span className="label-text">Valeur de remplacement (CAD)</span>
+                  <span className="label-text tooltip" data-tip="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
+                    Remplacement
+                  </span>
                 </label>
                 <input
                   type="number"
@@ -350,14 +358,18 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-base-content/60">Valeur estimée</p>
+            <p className="text-xs text-base-content/60 tooltip" data-tip="Valeur estimée en dollars canadiens (CAD)">
+              Valeur estimée
+            </p>
             <p className="text-lg font-bold text-primary break-words">
               <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
               {item.estimatedValue.toFixed(2)}
             </p>
           </div>
           <div className="text-right min-w-0 flex-1">
-            <p className="text-xs text-base-content/60">Remplacement</p>
+            <p className="text-xs text-base-content/60 tooltip" data-tip="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
+              Remplacement
+            </p>
             <p className="text-lg font-semibold text-secondary break-words">
               <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
               {item.replacementValue.toFixed(2)}
