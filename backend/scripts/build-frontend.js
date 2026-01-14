@@ -8,6 +8,11 @@ const path = require('path');
 console.log('🔨 Building frontend...');
 console.log(`   Current directory: ${process.cwd()}`);
 console.log(`   __dirname: ${__dirname}`);
+console.log(`   Process argv: ${process.argv.join(' ')}`);
+
+// Determine backend directory - this script is in backend/scripts/
+const backendDir = path.resolve(__dirname, '..');
+console.log(`   Backend directory: ${backendDir}`);
 
 try {
   // Try to find frontend directory
@@ -54,22 +59,11 @@ try {
   console.log(`✅ Frontend built successfully at ${distPath}`);
 
   // Copy to backend/public
-  // Try multiple possible public paths
-  const possiblePublicPaths = [
-    path.join(process.cwd(), 'public'), // Current working directory (backend)
-    path.join(__dirname, '../public'), // From scripts -> backend -> public
-    path.join(process.cwd(), '../backend/public'), // If running from repo root
-  ];
-
-  let publicPath = possiblePublicPaths[0];
-  for (const p of possiblePublicPaths) {
-    const parentDir = path.dirname(p);
-    if (fs.existsSync(parentDir)) {
-      publicPath = p;
-      console.log(`✅ Using public path: ${publicPath}`);
-      break;
-    }
-  }
+  // Always use backend directory relative to this script
+  const publicPath = path.join(backendDir, 'public');
+  console.log(`📋 Target public path: ${publicPath}`);
+  console.log(`   Absolute path: ${path.resolve(publicPath)}`);
+  console.log(`   Backend dir exists: ${fs.existsSync(backendDir)}`);
 
   console.log(`📋 Copying frontend to ${publicPath}...`);
   console.log(`   Parent directory exists: ${fs.existsSync(path.dirname(publicPath))}`);
