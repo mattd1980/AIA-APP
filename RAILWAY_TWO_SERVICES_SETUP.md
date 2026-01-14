@@ -27,13 +27,13 @@ Both services will be in the same Railway project and share the same domain.
 In the frontend service, go to **Variables** and add:
 
 ```env
-VITE_API_URL=https://your-backend-service-name.up.railway.app
+VITE_API_URL=https://aia-app-back.up.railway.app
 NODE_ENV=production
 PORT=3001
 HOST=0.0.0.0
 ```
 
-**Important**: Replace `your-backend-service-name` with your actual backend service name. You can find this in your backend service's settings → **Generate Domain**.
+**Note**: The backend service name is `AIA-APP-BACK`, so the URL will be `https://aia-app-back.up.railway.app` (Railway converts service names to lowercase with hyphens).
 
 ### Backend Service Variables
 
