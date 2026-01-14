@@ -11,22 +11,9 @@ cmds = ["npm install"]
 cmds = [
   "echo '=== Build phase starting ==='",
   "pwd",
-  "echo 'Current directory contents:'",
-  "ls -la || echo 'Cannot list directory'",
   "echo '=== Building backend ==='",
   "npm run build",
-  "echo '=== Building frontend ==='",
-  "node scripts/build-frontend.js || (echo '❌ Build frontend FAILED' && echo 'Current directory:' && pwd && echo 'Directory contents:' && ls -la && echo 'Backend dir contents:' && ls -la . 2>&1 && exit 1)",
-  "echo '=== Verifying build ==='",
-  "pwd",
-  "echo 'Checking for public directory...'",
-  "test -d public && echo '✅ public directory EXISTS' || (echo '❌ public directory MISSING' && echo 'Current directory contents:' && ls -la && exit 1)",
-  "test -f public/index.html && echo '✅ SUCCESS: index.html EXISTS in public' || (echo '❌ FAILED: index.html MISSING in public' && echo 'Public directory contents:' && ls -la public/ 2>&1 && exit 1)",
-  "echo 'Public directory contents:'",
-  "ls -la public/ 2>&1 | head -20 || echo 'Cannot list public directory'",
-  "echo '=== Build phase complete ==='",
-  "pwd",
-  "ls -la"
+  "echo '=== Build phase complete ==='"
 ]
 
 [start]
