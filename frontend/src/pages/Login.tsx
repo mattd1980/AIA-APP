@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { faUser, faLock } from '@fortawesome/free-solid-svg-icons';
-import axios from 'axios';
+import api from '../services/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -12,9 +12,9 @@ export default function Login() {
 
   useEffect(() => {
     // Check if user is already logged in
-    fetch('/api/auth/me', { credentials: 'include' })
+    api.get('/api/auth/me')
       .then((res) => {
-        if (res.ok) {
+        if (res.data) {
           // User is already logged in, redirect to home
           window.location.href = '/';
         }
@@ -25,7 +25,8 @@ export default function Login() {
   }, []);
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
+    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -34,11 +35,7 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        '/api/auth/login',
-        { username, password },
-        { withCredentials: true }
-      );
+      const response = await api.post('/api/auth/login', { username, password });
 
       if (response.data) {
         // Login successful, reload page to update auth state

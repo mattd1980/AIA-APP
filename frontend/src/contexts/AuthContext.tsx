@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 
 interface User {
   id: string;
@@ -26,12 +26,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get('/api/auth/me', {
-        withCredentials: true,
-      });
+      const response = await api.get('/api/auth/me');
       setUser(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      // User is not authenticated, which is fine
       setUser(null);
+      // Only log if it's not a 401 (unauthorized)
+      if (error.response?.status !== 401) {
+        console.error('Auth check error:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -39,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await axios.post('/api/auth/logout', {}, { withCredentials: true });
+      await api.post('/api/auth/logout', {});
       setUser(null);
       window.location.href = '/login';
     } catch (error) {

@@ -88,8 +88,17 @@ router.get('/', requireAuth, async (req: AuthenticatedRequest, res) => {
 });
 
 // GET /api/inventories/:id/images/:imageId - Get image
-router.get('/:id/images/:imageId', async (req, res) => {
+router.get('/:id/images/:imageId', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
+    const userId = req.user!.id;
+    const inventoryId = req.params.id;
+    
+    // Verify inventory belongs to user
+    const inventory = await inventoryService.getInventoryById(inventoryId, userId);
+    if (!inventory) {
+      return res.status(404).json({ error: 'Inventory not found' });
+    }
+
     const image = await imageService.getImageById(req.params.imageId);
     
     if (!image) {
@@ -97,7 +106,7 @@ router.get('/:id/images/:imageId', async (req, res) => {
     }
 
     // Verify image belongs to this inventory
-    if (image.inventoryId !== req.params.id) {
+    if (image.inventoryId !== inventoryId) {
       return res.status(403).json({ error: 'Image does not belong to this inventory' });
     }
 
@@ -151,15 +160,11 @@ router.post('/:id/images', requireAuth, upload.array('images', 10), async (req: 
 router.patch('/:id/items/:itemId', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
-    // Verify inventory belongs to user
-    const inventory = await inventoryService.getInventoryById(req.params.id, userId);
-    if (!inventory) {
-      return res.status(404).json({ error: 'Inventory not found' });
-    }
     
     const updatedItem = await inventoryService.updateItem(
       req.params.id,
       req.params.itemId,
+      userId,
       req.body
     );
     res.json(updatedItem);
@@ -176,13 +181,8 @@ router.patch('/:id/items/:itemId', requireAuth, async (req: AuthenticatedRequest
 router.delete('/:id/items/:itemId', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const userId = req.user!.id;
-    // Verify inventory belongs to user
-    const inventory = await inventoryService.getInventoryById(req.params.id, userId);
-    if (!inventory) {
-      return res.status(404).json({ error: 'Inventory not found' });
-    }
     
-    await inventoryService.deleteItem(req.params.id, req.params.itemId);
+    await inventoryService.deleteItem(req.params.id, req.params.itemId, userId);
     res.json({ message: 'Item deleted successfully' });
   } catch (error: any) {
     if (error.message === 'Inventory not found' || error.message === 'Item not found') {

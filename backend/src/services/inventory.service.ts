@@ -315,6 +315,7 @@ class InventoryService {
   async updateItem(
     inventoryId: string,
     itemId: string,
+    userId: string,
     updates: {
       itemName?: string;
       category?: string;
@@ -327,8 +328,10 @@ class InventoryService {
       replacementValue?: number;
     }
   ) {
-    // Verify inventory exists
-    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+    // Verify inventory exists and belongs to user
+    const inventory = await prisma.inventory.findFirst({ 
+      where: { id: inventoryId, userId } 
+    });
     if (!inventory) {
       throw new Error('Inventory not found');
     }
@@ -394,9 +397,11 @@ class InventoryService {
     };
   }
 
-  async deleteItem(inventoryId: string, itemId: string) {
-    // Verify inventory exists
-    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+  async deleteItem(inventoryId: string, itemId: string, userId: string) {
+    // Verify inventory exists and belongs to user
+    const inventory = await prisma.inventory.findFirst({ 
+      where: { id: inventoryId, userId } 
+    });
     if (!inventory) {
       throw new Error('Inventory not found');
     }
