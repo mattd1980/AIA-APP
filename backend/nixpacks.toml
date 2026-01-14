@@ -9,14 +9,15 @@ cmds = ["cd backend && npm install"]
 
 [phases.build]
 cmds = [
-  "echo '=== Build phase starting ===' && pwd",
+  "echo '=== Build phase starting ===' && pwd && ls -la",
   "npm run build",
-  "npm run build:frontend",
+  "echo '=== Building frontend ==='",
+  "npm run build:frontend || (echo 'Build frontend failed, checking...' && ls -la && exit 1)",
   "echo '=== Verifying build ===' && pwd",
-  "test -d public && echo '✅ public directory exists' || echo '❌ public directory missing'",
-  "test -f public/index.html && echo '✅ SUCCESS: Frontend in public/index.html' || echo '❌ FAILED: index.html not in public'",
-  "ls -la public/ 2>&1 | head -10 || echo 'Cannot list public directory'",
-  "echo '=== Build phase complete ==='"
+  "test -d public && echo '✅ public directory exists' || (echo '❌ public directory missing' && ls -la && exit 1)",
+  "test -f public/index.html && echo '✅ SUCCESS: Frontend in public/index.html' || (echo '❌ FAILED: index.html not in public' && ls -la public/ 2>&1 && exit 1)",
+  "ls -la public/ 2>&1 | head -15 || echo 'Cannot list public directory'",
+  "echo '=== Build phase complete ===' && pwd && ls -la"
 ]
 
 [start]

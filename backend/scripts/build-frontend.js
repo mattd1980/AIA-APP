@@ -54,16 +54,41 @@ try {
   console.log(`✅ Frontend built successfully at ${distPath}`);
 
   // Copy to backend/public
-  const publicPath = path.join(process.cwd(), 'public');
+  // Try multiple possible public paths
+  const possiblePublicPaths = [
+    path.join(process.cwd(), 'public'), // Current working directory (backend)
+    path.join(__dirname, '../public'), // From scripts -> backend -> public
+    path.join(process.cwd(), '../backend/public'), // If running from repo root
+  ];
+
+  let publicPath = possiblePublicPaths[0];
+  for (const p of possiblePublicPaths) {
+    const parentDir = path.dirname(p);
+    if (fs.existsSync(parentDir)) {
+      publicPath = p;
+      console.log(`✅ Using public path: ${publicPath}`);
+      break;
+    }
+  }
+
   console.log(`📋 Copying frontend to ${publicPath}...`);
+  console.log(`   Parent directory exists: ${fs.existsSync(path.dirname(publicPath))}`);
   
   // Remove old public directory
   if (fs.existsSync(publicPath)) {
+    console.log(`   Removing existing ${publicPath}...`);
     fs.rmSync(publicPath, { recursive: true, force: true });
   }
   
   // Create public directory
+  console.log(`   Creating ${publicPath}...`);
   fs.mkdirSync(publicPath, { recursive: true });
+  
+  if (!fs.existsSync(publicPath)) {
+    console.error(`❌ Failed to create public directory at ${publicPath}`);
+    process.exit(1);
+  }
+  console.log(`✅ Public directory created at ${publicPath}`);
 
   // Copy all files
   const copyRecursive = (src, dest) => {
@@ -84,11 +109,27 @@ try {
   copyRecursive(distPath, publicPath);
 
   // Verify copy
-  if (fs.existsSync(path.join(publicPath, 'index.html'))) {
+  const finalIndexPath = path.join(publicPath, 'index.html');
+  if (fs.existsSync(finalIndexPath)) {
+    const files = fs.readdirSync(publicPath);
     console.log(`✅ Frontend copied successfully to ${publicPath}`);
-    console.log(`   Files in public: ${fs.readdirSync(publicPath).length} items`);
+    console.log(`   Files in public: ${files.length} items`);
+    console.log(`   Sample files: ${files.slice(0, 10).join(', ')}`);
+    console.log(`   Absolute path: ${path.resolve(publicPath)}`);
+    
+    // Also verify we can read index.html
+    try {
+      const stats = fs.statSync(finalIndexPath);
+      console.log(`   index.html size: ${stats.size} bytes`);
+    } catch (e) {
+      console.error(`   Warning: Cannot stat index.html: ${e.message}`);
+    }
   } else {
     console.error(`❌ Copy failed - index.html not found in ${publicPath}`);
+    console.error(`   Public directory exists: ${fs.existsSync(publicPath)}`);
+    if (fs.existsSync(publicPath)) {
+      console.error(`   Contents of public: ${fs.readdirSync(publicPath).join(', ')}`);
+    }
     process.exit(1);
   }
 
