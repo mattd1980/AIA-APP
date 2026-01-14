@@ -9,17 +9,18 @@ cmds = ["cd backend && npm install"]
 
 [phases.build]
 cmds = [
-  "echo '=== Build phase starting ===' && pwd",
-  "cd backend && npm run build && cd ..",
-  "cd frontend && npm ci && npm run build && cd ..",
+  "echo '=== Build phase starting ===' && pwd && ls -la",
+  "npm run build",
+  "echo '=== Building frontend ===' && pwd",
+  "cd ../frontend && npm ci && npm run build && cd ../backend",
   "echo '=== Verifying frontend build ===' && pwd",
-  "ls -la frontend/dist/ 2>&1 | head -5 || echo 'Cannot list frontend/dist'",
-  "test -f frontend/dist/index.html && echo '✅ frontend/dist/index.html exists' || echo '❌ frontend/dist/index.html missing'",
-  "echo '=== Copying to backend/public ==='",
-  "rm -rf backend/public && mkdir -p backend/public",
-  "cp -r frontend/dist/. backend/public/ && echo 'Copy completed' || echo 'Copy failed'",
-  "test -f backend/public/index.html && echo '✅ SUCCESS: Frontend in backend/public' || echo '❌ FAILED: index.html not in backend/public'",
-  "ls -la backend/public/ 2>&1 | head -10",
+  "ls -la ../frontend/dist/ 2>&1 | head -5 || echo 'Cannot list ../frontend/dist'",
+  "test -f ../frontend/dist/index.html && echo '✅ ../frontend/dist/index.html exists' || echo '❌ ../frontend/dist/index.html missing'",
+  "echo '=== Copying to public ===' && pwd",
+  "rm -rf public && mkdir -p public",
+  "cp -r ../frontend/dist/. public/ && echo 'Copy completed' || (echo 'Copy failed' && ls -la ../frontend/dist/ 2>&1 | head -5)",
+  "test -f public/index.html && echo '✅ SUCCESS: Frontend in public' || echo '❌ FAILED: index.html not in public'",
+  "ls -la public/ 2>&1 | head -10",
   "echo '=== Build phase complete ==='"
 ]
 
