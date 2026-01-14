@@ -9,18 +9,13 @@ cmds = ["cd backend && npm install"]
 
 [phases.build]
 cmds = [
-  "echo '=== Build phase starting ===' && pwd && ls -la",
+  "echo '=== Build phase starting ===' && pwd",
   "npm run build",
-  "echo '=== Building frontend ===' && pwd",
-  "cd ../frontend && npm ci && npm run build && cd ../backend",
-  "echo '=== Verifying frontend build ===' && pwd",
-  "ls -la ../frontend/dist/ 2>&1 | head -5 || echo 'Cannot list ../frontend/dist'",
-  "test -f ../frontend/dist/index.html && echo '✅ ../frontend/dist/index.html exists' || echo '❌ ../frontend/dist/index.html missing'",
-  "echo '=== Copying to public ===' && pwd",
-  "rm -rf public && mkdir -p public",
-  "cp -r ../frontend/dist/. public/ && echo 'Copy completed' || (echo 'Copy failed' && ls -la ../frontend/dist/ 2>&1 | head -5)",
-  "test -f public/index.html && echo '✅ SUCCESS: Frontend in public' || echo '❌ FAILED: index.html not in public'",
-  "ls -la public/ 2>&1 | head -10",
+  "npm run build:frontend",
+  "echo '=== Verifying build ===' && pwd",
+  "test -d public && echo '✅ public directory exists' || echo '❌ public directory missing'",
+  "test -f public/index.html && echo '✅ SUCCESS: Frontend in public/index.html' || echo '❌ FAILED: index.html not in public'",
+  "ls -la public/ 2>&1 | head -10 || echo 'Cannot list public directory'",
   "echo '=== Build phase complete ==='"
 ]
 
