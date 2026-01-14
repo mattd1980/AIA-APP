@@ -40,9 +40,15 @@ passport.use(
 
         // Get or create admin user
         const user = await authService.findOrCreateAdminUser();
-        return done(null, user);
+        // Convert Prisma null to undefined for Passport compatibility
+        const passportUser = {
+          ...user,
+          name: user.name ?? undefined,
+          picture: user.picture ?? undefined,
+        };
+        return done(null, passportUser);
       } catch (error: any) {
-        return done(error, null);
+        return done(error, false);
       }
     }
   )
@@ -60,9 +66,15 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         const user = await authService.findOrCreateUser(profile);
-        return done(null, user);
+        // Convert Prisma null to undefined for Passport compatibility
+        const passportUser = {
+          ...user,
+          name: user.name ?? undefined,
+          picture: user.picture ?? undefined,
+        };
+        return done(null, passportUser);
       } catch (error: any) {
-        return done(error, null);
+        return done(error, false);
       }
     }
   )
@@ -77,9 +89,19 @@ passport.serializeUser((user: any, done) => {
 passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await authService.getUserById(id);
-    done(null, user);
+    if (user) {
+      // Convert Prisma null to undefined for Passport compatibility
+      const passportUser = {
+        ...user,
+        name: user.name ?? undefined,
+        picture: user.picture ?? undefined,
+      };
+      done(null, passportUser);
+    } else {
+      done(null, false);
+    }
   } catch (error) {
-    done(error, null);
+    done(error, false);
   }
 });
 
@@ -124,13 +146,14 @@ router.get(
 );
 
 // Get current user
-router.get('/me', (req: AuthenticatedRequest, res: Response) => {
-  if (req.user) {
+router.get('/me', (req: Request, res: Response) => {
+  const user = (req as any).user;
+  if (user) {
     res.json({
-      id: req.user.id,
-      email: req.user.email,
-      name: req.user.name,
-      picture: req.user.picture,
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      picture: user.picture,
     });
   } else {
     res.status(401).json({ error: 'Not authenticated' });
@@ -138,8 +161,8 @@ router.get('/me', (req: AuthenticatedRequest, res: Response) => {
 });
 
 // Logout
-router.post('/logout', (req: AuthenticatedRequest, res: Response) => {
-  req.logout((err) => {
+router.post('/logout', (req: Request, res: Response) => {
+  (req as any).logout((err: any) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
     }

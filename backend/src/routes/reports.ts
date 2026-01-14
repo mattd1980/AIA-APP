@@ -7,10 +7,10 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 const router = Router();
 
 // POST /api/inventories/:id/report - Generate PDF report
-router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedRequest, res) => {
+router.post('/:inventoryId/report', requireAuth, async (req, res) => {
   try {
-    const { inventoryId } = req.params;
-    const userId = req.user!.id;
+    const inventoryId = String(req.params.inventoryId);
+    const userId = (req as AuthenticatedRequest).user!.id;
 
     const inventory = await prisma.inventory.findFirst({
       where: { id: inventoryId, userId },
@@ -48,6 +48,35 @@ router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedReques
       });
     }
 
+    // Type assertion for Prisma include result - Prisma includes items and images
+    type InventoryWithRelations = typeof inventory & {
+      items: Array<{
+        id: string;
+        itemName: string;
+        brand: string | null;
+        model: string | null;
+        category: string;
+        condition: string;
+        estimatedAge: number | null;
+        replacementValue: any;
+        aiAnalysis: any;
+        images: Array<{
+          id: string;
+          fileName: string;
+          uploadOrder: number;
+        }>;
+      }>;
+      images: Array<{
+        id: string;
+        fileName: string;
+        uploadOrder: number;
+        imageData: Buffer;
+        imageType: string;
+      }>;
+    };
+    
+    const inventoryWithRelations = inventory as InventoryWithRelations;
+
     // Generate PDF
     const doc = new PDFDocument();
     const chunks: Buffer[] = [];
@@ -60,7 +89,7 @@ router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedReques
         // Save report to database (don't wait for it to complete before sending)
         prisma.report.create({
           data: {
-            inventoryId,
+            inventoryId: String(inventoryId),
             reportType: 'pdf',
             reportData: pdfBuffer,
           },
@@ -72,7 +101,7 @@ router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedReques
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader(
           'Content-Disposition',
-          `attachment; filename="inventory-report-${inventoryId}.pdf"`
+          `attachment; filename="inventory-report-${String(inventoryId)}.pdf"`
         );
         res.send(pdfBuffer);
       } catch (error: any) {
@@ -145,11 +174,11 @@ router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedReques
     };
 
     // Items
-    if (inventory.items && inventory.items.length > 0) {
+    if (inventoryWithRelations.items && inventoryWithRelations.items.length > 0) {
       doc.fontSize(16).text('Items Inventoriés', { underline: true });
       doc.moveDown();
 
-      for (const [index, item] of inventory.items.entries()) {
+      for (const [index, item] of inventoryWithRelations.items.entries()) {
         doc.fontSize(12);
         doc.text(`${index + 1}. ${item.itemName}`, { continued: false });
         if (item.brand) doc.text(`   Marque: ${item.brand}`, { indent: 20 });
@@ -174,7 +203,7 @@ router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedReques
         // Add image with bounding box if available
         const aiAnalysis = item.aiAnalysis as any;
         if (aiAnalysis?.boundingBox && aiAnalysis?.sourceImageId) {
-          const sourceImage = inventory.images.find(img => img.id === aiAnalysis.sourceImageId);
+          const sourceImage = inventoryWithRelations.images.find((img: { id: string }) => img.id === aiAnalysis.sourceImageId);
           if (sourceImage) {
             try {
               doc.moveDown(0.5);

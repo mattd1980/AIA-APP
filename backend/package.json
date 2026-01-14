@@ -9,7 +9,8 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc && cd ../frontend && npm ci && npm run build",
+    "build": "tsc",
+    "build:full": "tsc && cd ../frontend && npm ci && npm run build",
     "start": "node dist/server.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

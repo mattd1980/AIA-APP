@@ -5,10 +5,10 @@ NODE_VERSION = "20"
 nixPkgs = ["nodejs"]
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["cd backend && npm install"]
 
 [phases.build]
-cmds = ["npm run build"]
+cmds = ["cd backend && npm run build", "cd ../frontend && npm ci && npm run build"]
 
 [start]
-cmd = "npm run railway"
+cmd = "cd backend && npm run railway"

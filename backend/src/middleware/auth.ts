@@ -1,16 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 
+declare global {
+  namespace Express {
+    interface User {
+      id: string;
+      email: string;
+      name?: string;
+      picture?: string;
+    }
+  }
+}
+
 export interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string;
-    email: string;
-    name?: string;
-    picture?: string;
-  };
+  user?: Express.User;
 }
 
 export const requireAuth = (
-  req: AuthenticatedRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
