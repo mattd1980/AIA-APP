@@ -18,13 +18,14 @@ const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
 
 // Handle client-side routing - serve index.html for all non-API routes
-// Use '/*' instead of '*' for newer Express versions
-app.get('/*', (req, res) => {
+// Use app.use with a catch-all instead of app.get('*') for better compatibility
+app.use((req, res, next) => {
   // Don't serve index.html for API routes
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Not found' });
   }
   
+  // If it's not a static file request, serve index.html for SPA routing
   const indexPath = path.join(distPath, 'index.html');
   res.sendFile(indexPath);
 });
