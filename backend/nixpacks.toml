@@ -11,13 +11,14 @@ cmds = ["cd backend && npm install"]
 cmds = [
   "cd backend && npm run build",
   "cd ../frontend && npm ci && npm run build",
-  "echo '=== Frontend build verification ==='",
-  "test -d ../frontend/dist && echo 'Frontend dist directory exists' || echo 'Frontend dist directory missing'",
-  "test -f ../frontend/dist/index.html && echo 'Frontend index.html exists' || echo 'Frontend index.html missing'",
-  "echo '=== Copying frontend dist to backend ==='",
-  "mkdir -p backend/public",
-  "cp -r ../frontend/dist/* backend/public/ || echo 'Failed to copy frontend dist'",
-  "test -f backend/public/index.html && echo 'Frontend copied successfully' || echo 'Frontend copy failed'"
+  "cd .. && echo '=== Frontend build verification ==='",
+  "cd .. && test -d frontend/dist && echo 'Frontend dist directory exists' || echo 'Frontend dist directory missing'",
+  "cd .. && test -f frontend/dist/index.html && echo 'Frontend index.html exists' || echo 'Frontend index.html missing'",
+  "cd .. && echo '=== Copying frontend dist to backend/public ==='",
+  "cd .. && mkdir -p backend/public",
+  "cd .. && cp -r frontend/dist/* backend/public/ || (echo 'Failed to copy frontend dist' && ls -la frontend/dist/ | head -5)",
+  "cd .. && test -f backend/public/index.html && echo '✅ Frontend copied successfully to backend/public' || echo '❌ Frontend copy failed - index.html missing'",
+  "cd .. && ls -la backend/public/ | head -10 || echo 'backend/public directory listing failed'"
 ]
 
 [start]
