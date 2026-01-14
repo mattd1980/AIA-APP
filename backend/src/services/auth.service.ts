@@ -68,6 +68,31 @@ export class AuthService {
   async getUserById(id: string) {
     return await prisma.user.findUnique({ where: { id } });
   }
+
+  async findOrCreateAdminUser() {
+    const adminEmail = 'admin@local';
+    let user = await prisma.user.findUnique({ where: { email: adminEmail } });
+    
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          email: adminEmail,
+          name: 'Admin',
+        },
+      });
+    }
+    
+    return user;
+  }
+
+  async validateAdminPassword(password: string): Promise<boolean> {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      console.warn('⚠️  ADMIN_PASSWORD not set in environment variables');
+      return false;
+    }
+    return password === adminPassword;
+  }
 }
 
 export const authService = new AuthService();

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { Strategy as LocalStrategy } from 'passport-local';
 import { authService } from '../services/auth.service';
 import { AuthenticatedRequest } from '../middleware/auth';
 
@@ -16,7 +17,40 @@ const callbackURL = process.env.GOOGLE_CALLBACK_URL ||
     ? `${process.env.FRONTEND_URL}/api/auth/google/callback`
     : '/api/auth/google/callback');
 
+// Configure Local Strategy for username/password
 passport.use(
+  'local',
+  new LocalStrategy(
+    {
+      usernameField: 'username',
+      passwordField: 'password',
+    },
+    async (username: string, password: string, done) => {
+      try {
+        // Only allow 'admin' username
+        if (username !== 'admin') {
+          return done(null, false, { message: 'Invalid username' });
+        }
+
+        // Validate password
+        const isValid = await authService.validateAdminPassword(password);
+        if (!isValid) {
+          return done(null, false, { message: 'Invalid password' });
+        }
+
+        // Get or create admin user
+        const user = await authService.findOrCreateAdminUser();
+        return done(null, user);
+      } catch (error: any) {
+        return done(error, null);
+      }
+    }
+  )
+);
+
+// Configure Google OAuth Strategy
+passport.use(
+  'google',
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID || '',
@@ -47,6 +81,29 @@ passport.deserializeUser(async (id: string, done) => {
   } catch (error) {
     done(error, null);
   }
+});
+
+// Username/password login route
+router.post('/login', (req: Request, res: Response, next) => {
+  passport.authenticate('local', (err: any, user: any, info: any) => {
+    if (err) {
+      return res.status(500).json({ error: 'Authentication error' });
+    }
+    if (!user) {
+      return res.status(401).json({ error: info?.message || 'Invalid credentials' });
+    }
+    req.logIn(user, (loginErr) => {
+      if (loginErr) {
+        return res.status(500).json({ error: 'Login error' });
+      }
+      return res.json({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+      });
+    });
+  })(req, res, next);
 });
 
 // Google OAuth routes
