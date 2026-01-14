@@ -25,7 +25,24 @@ export default function Login() {
       });
   }, []);
 
+  const [googleEnabled, setGoogleEnabled] = useState(false);
+
+  useEffect(() => {
+    // Check if Google OAuth is enabled
+    api.get('/api/auth/google/enabled')
+      .then((res) => {
+        setGoogleEnabled(res.data?.enabled || false);
+      })
+      .catch(() => {
+        setGoogleEnabled(false);
+      });
+  }, []);
+
   const handleGoogleLogin = () => {
+    if (!googleEnabled) {
+      setError('Google OAuth n\'est pas configuré');
+      return;
+    }
     const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
     window.location.href = `${API_URL}/api/auth/google`;
   };
@@ -119,15 +136,19 @@ export default function Login() {
               </button>
             </form>
 
-            <div className="divider">Ou</div>
+          {googleEnabled && (
+            <>
+              <div className="divider">Ou</div>
 
-            <button
-              className="btn btn-outline w-full"
-              onClick={handleGoogleLogin}
-            >
-              <FontAwesomeIcon icon={faGoogle} className="mr-2" />
-              Se connecter avec Google
-            </button>
+              <button
+                className="btn btn-outline w-full"
+                onClick={handleGoogleLogin}
+              >
+                <FontAwesomeIcon icon={faGoogle} className="mr-2" />
+                Se connecter avec Google
+              </button>
+            </>
+          )}
 
             <p className="text-xs text-center text-base-content/50 mt-4">
               En vous connectant, vous acceptez nos{' '}

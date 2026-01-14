@@ -7,16 +7,6 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Configure Google OAuth Strategy
-if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
-  console.warn('⚠️  Google OAuth credentials not configured. Authentication will not work.');
-}
-
-const callbackURL = process.env.GOOGLE_CALLBACK_URL || 
-  (process.env.FRONTEND_URL 
-    ? `${process.env.FRONTEND_URL}/api/auth/google/callback`
-    : '/api/auth/google/callback');
-
 // Configure Local Strategy for username/password
 passport.use(
   'local',
@@ -54,31 +44,45 @@ passport.use(
   )
 );
 
-// Configure Google OAuth Strategy
-passport.use(
-  'google',
-  new GoogleStrategy(
-    {
-      clientID: process.env.GOOGLE_CLIENT_ID || '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      callbackURL,
-    },
-    async (accessToken, refreshToken, profile, done) => {
-      try {
-        const user = await authService.findOrCreateUser(profile);
-        // Convert Prisma null to undefined for Passport compatibility
-        const passportUser = {
-          ...user,
-          name: user.name ?? undefined,
-          picture: user.picture ?? undefined,
-        };
-        return done(null, passportUser);
-      } catch (error: any) {
-        return done(error, false);
+// Configure Google OAuth Strategy (only if credentials are provided)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const GOOGLE_ENABLED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
+
+if (GOOGLE_ENABLED) {
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL || 
+    (process.env.FRONTEND_URL 
+      ? `${process.env.FRONTEND_URL}/api/auth/google/callback`
+      : '/api/auth/google/callback');
+
+  passport.use(
+    'google',
+    new GoogleStrategy(
+      {
+        clientID: GOOGLE_CLIENT_ID,
+        clientSecret: GOOGLE_CLIENT_SECRET,
+        callbackURL,
+      },
+      async (accessToken, refreshToken, profile, done) => {
+        try {
+          const user = await authService.findOrCreateUser(profile);
+          // Convert Prisma null to undefined for Passport compatibility
+          const passportUser = {
+            ...user,
+            name: user.name ?? undefined,
+            picture: user.picture ?? undefined,
+          };
+          return done(null, passportUser);
+        } catch (error: any) {
+          return done(error, false);
+        }
       }
-    }
-  )
-);
+    )
+  );
+  console.log('✅ Google OAuth enabled');
+} else {
+  console.log('⚠️  Google OAuth disabled - credentials not configured');
+}
 
 // Serialize user for session
 passport.serializeUser((user: any, done) => {
@@ -128,22 +132,38 @@ router.post('/login', (req: Request, res: Response, next) => {
   })(req, res, next);
 });
 
-// Google OAuth routes
-router.get(
-  '/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
-);
+// Google OAuth routes (only if enabled)
+if (GOOGLE_ENABLED) {
+  router.get(
+    '/google',
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+  );
 
-router.get(
-  '/google/callback',
-  passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
-  (req: Request, res: Response) => {
-    // Successful authentication, redirect to home
-    // Use absolute URL if FRONTEND_URL is set, otherwise relative
-    const redirectUrl = process.env.FRONTEND_URL || '/';
-    res.redirect(redirectUrl);
-  }
-);
+  router.get(
+    '/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
+    (req: Request, res: Response) => {
+      // Successful authentication, redirect to home
+      // Use absolute URL if FRONTEND_URL is set, otherwise relative
+      const redirectUrl = process.env.FRONTEND_URL || '/';
+      res.redirect(redirectUrl);
+    }
+  );
+} else {
+  // Return 503 Service Unavailable if Google OAuth is disabled
+  router.get('/google', (req: Request, res: Response) => {
+    res.status(503).json({ error: 'Google OAuth is not configured' });
+  });
+
+  router.get('/google/callback', (req: Request, res: Response) => {
+    res.status(503).json({ error: 'Google OAuth is not configured' });
+  });
+}
+
+// Check if Google OAuth is enabled
+router.get('/google/enabled', (req: Request, res: Response) => {
+  res.json({ enabled: GOOGLE_ENABLED });
+});
 
 // Get current user
 router.get('/me', (req: Request, res: Response) => {
