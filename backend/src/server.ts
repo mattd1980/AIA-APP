@@ -68,6 +68,14 @@ console.log('   Checking paths:');
 possiblePaths.forEach((p, i) => {
   const exists = existsSync(p);
   console.log(`   ${i + 1}. ${p} ${exists ? '✅ EXISTS' : '❌ NOT FOUND'}`);
+  if (exists) {
+    try {
+      const files = require('fs').readdirSync(p);
+      console.log(`      Contains ${files.length} items: ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`);
+    } catch (e) {
+      console.log(`      (Cannot read directory)`);
+    }
+  }
 });
 
 // Find the first path that exists
