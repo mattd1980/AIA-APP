@@ -2,16 +2,18 @@ import { Router } from 'express';
 import PDFDocument from 'pdfkit';
 import sharp from 'sharp';
 import prisma from '../database/client';
+import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
 // POST /api/inventories/:id/report - Generate PDF report
-router.post('/:inventoryId/report', async (req, res) => {
+router.post('/:inventoryId/report', requireAuth, async (req: AuthenticatedRequest, res) => {
   try {
     const { inventoryId } = req.params;
+    const userId = req.user!.id;
 
-    const inventory = await prisma.inventory.findUnique({
-      where: { id: inventoryId },
+    const inventory = await prisma.inventory.findFirst({
+      where: { id: inventoryId, userId },
       include: {
         items: {
           include: {

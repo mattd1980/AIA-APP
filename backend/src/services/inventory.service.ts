@@ -6,9 +6,10 @@ import { calculationService } from './calculation.service';
 import { imageService } from './image.service';
 
 class InventoryService {
-  async createInventory(name?: string) {
+  async createInventory(userId: string, name?: string) {
     return await prisma.inventory.create({
       data: {
+        userId,
         name: name || null,
         status: 'draft',
         totalEstimatedValue: 0,
@@ -169,9 +170,9 @@ class InventoryService {
     }
   }
 
-  async getInventoryById(id: string): Promise<InventoryResponse | null> {
-    const inventory = await prisma.inventory.findUnique({
-      where: { id },
+  async getInventoryById(id: string, userId: string): Promise<InventoryResponse | null> {
+    const inventory = await prisma.inventory.findFirst({
+      where: { id, userId },
       include: {
         items: {
           include: {
@@ -263,9 +264,12 @@ class InventoryService {
     };
   }
 
-  async listInventories(page: number, limit: number, status?: string) {
+  async listInventories(userId: string, page: number, limit: number, status?: string) {
     const skip = (page - 1) * limit;
-    const where = status ? { status: status as InventoryStatus } : {};
+    const where: any = { userId };
+    if (status) {
+      where.status = status as InventoryStatus;
+    }
 
     const [data, total] = await Promise.all([
       prisma.inventory.findMany({
@@ -430,8 +434,10 @@ class InventoryService {
     });
   }
 
-  async updateInventory(id: string, updates: { name?: string }) {
-    const inventory = await prisma.inventory.findUnique({ where: { id } });
+  async updateInventory(id: string, userId: string, updates: { name?: string }) {
+    const inventory = await prisma.inventory.findFirst({ 
+      where: { id, userId } 
+    });
     if (!inventory) {
       throw new Error('Inventory not found');
     }
@@ -445,8 +451,10 @@ class InventoryService {
     });
   }
 
-  async addImagesToInventory(inventoryId: string, files: Express.Multer.File[]) {
-    const inventory = await prisma.inventory.findUnique({ where: { id: inventoryId } });
+  async addImagesToInventory(inventoryId: string, userId: string, files: Express.Multer.File[]) {
+    const inventory = await prisma.inventory.findFirst({ 
+      where: { id: inventoryId, userId } 
+    });
     if (!inventory) {
       throw new Error('Inventory not found');
     }
@@ -473,8 +481,10 @@ class InventoryService {
     return { message: `${files.length} image(s) added successfully` };
   }
 
-  async deleteInventory(id: string) {
-    const inventory = await prisma.inventory.findUnique({ where: { id } });
+  async deleteInventory(id: string, userId: string) {
+    const inventory = await prisma.inventory.findFirst({ 
+      where: { id, userId } 
+    });
     if (!inventory) {
       throw new Error('Inventory not found');
     }

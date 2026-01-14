@@ -3,14 +3,35 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import { existsSync } from 'fs';
+import session from 'express-session';
+import passport from 'passport';
 import inventoryRoutes from './routes/inventories';
 import healthRoutes from './routes/health';
 import reportRoutes from './routes/reports';
+import authRoutes from './routes/auth';
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
+
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Middleware
 app.use(cors({
@@ -21,6 +42,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API Routes (must come before static files)
+app.use('/api/auth', authRoutes);
 app.use('/api/inventories', inventoryRoutes);
 app.use('/api/inventories', reportRoutes);
 app.use('/health', healthRoutes);
@@ -47,7 +69,7 @@ if (existsSync(frontendDistPath)) {
 
 // Serve frontend for all non-API routes (SPA routing)
 app.get('*', (req, res) => {
-  // Don't serve index.html for API routes
+  // Don't serve index.html for API routes or auth routes
   if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
     return res.status(404).json({ error: 'Not found' });
   }
