@@ -50,21 +50,40 @@ app.use('/health', healthRoutes);
 // Serve static files from frontend build
 // Try multiple possible paths (Railway might structure things differently)
 const possiblePaths = [
+  path.join(process.cwd(), '../frontend/dist'), // from backend -> repo root -> frontend/dist
   path.join(__dirname, '../../frontend/dist'), // backend/dist -> backend -> repo root -> frontend/dist
   path.join(__dirname, '../../../frontend/dist'), // if running from different location
-  path.join(process.cwd(), '../frontend/dist'), // from current working directory
+  path.join(process.cwd(), 'frontend/dist'), // if frontend is in backend directory
+  path.join(process.cwd(), '../../frontend/dist'), // if running from backend/dist
 ];
 
-// Find the first path that exists
-const frontendDistPath = possiblePaths.find(p => existsSync(p)) || possiblePaths[0];
+// Log all paths for debugging
+console.log('🔍 Searching for frontend dist directory...');
+console.log(`   Current working directory: ${process.cwd()}`);
+console.log(`   __dirname: ${__dirname}`);
+console.log('   Checking paths:');
+possiblePaths.forEach((p, i) => {
+  const exists = existsSync(p);
+  console.log(`   ${i + 1}. ${p} ${exists ? '✅ EXISTS' : '❌ NOT FOUND'}`);
+});
 
-// Check if frontend dist exists, log for debugging
-if (existsSync(frontendDistPath)) {
+// Find the first path that exists
+const frontendDistPath = possiblePaths.find(p => existsSync(p));
+
+if (frontendDistPath && existsSync(frontendDistPath)) {
   console.log(`✅ Frontend dist found at: ${frontendDistPath}`);
   app.use(express.static(frontendDistPath));
+  
+  // Verify index.html exists
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (existsSync(indexPath)) {
+    console.log(`✅ Frontend index.html found at: ${indexPath}`);
+  } else {
+    console.warn(`⚠️  Frontend index.html not found at: ${indexPath}`);
+  }
 } else {
-  console.warn(`⚠️  Frontend dist not found at: ${frontendDistPath}`);
-  console.warn(`   Current __dirname: ${__dirname}`);
+  console.warn(`⚠️  Frontend dist not found in any of the checked paths`);
+  console.warn(`   Please ensure frontend is built during deployment`);
 }
 
 // Serve frontend for all non-API routes (SPA routing)
@@ -74,18 +93,25 @@ app.get('*', (req, res) => {
     return res.status(404).json({ error: 'Not found' });
   }
   
-  // Try to serve index.html if it exists
-  const indexPath = path.join(frontendDistPath, 'index.html');
-  if (existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    // Fallback: return API info if frontend not built
-    res.json({ 
-      message: 'AIA Backend API', 
-      version: '1.0.0',
-      note: 'Frontend not found. Make sure frontend is built during deployment.'
-    });
+  // Try to serve index.html if frontend dist exists
+  if (frontendDistPath) {
+    const indexPath = path.join(frontendDistPath, 'index.html');
+    if (existsSync(indexPath)) {
+      return res.sendFile(indexPath);
+    }
   }
+  
+  // Fallback: return API info if frontend not built
+  res.json({ 
+    message: 'AIA Backend API', 
+    version: '1.0.0',
+    note: 'Frontend not found. Make sure frontend is built during deployment.',
+    debug: {
+      cwd: process.cwd(),
+      __dirname: __dirname,
+      checkedPaths: possiblePaths.map(p => ({ path: p, exists: existsSync(p) }))
+    }
+  });
 });
 
 // Start server
