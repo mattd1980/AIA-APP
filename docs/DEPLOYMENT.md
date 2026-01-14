@@ -59,11 +59,18 @@ railway up
 Dans le dashboard Railway, aller dans "Variables" et ajouter:
 
 ```env
-# Database (généré automatiquement par Railway)
+# Database (généré automatiquement par Railway quand vous ajoutez PostgreSQL)
 DATABASE_URL=postgresql://user:password@host:port/database
 
 # OpenAI
 OPENAI_API_KEY=sk-...
+
+# Authentication
+SESSION_SECRET=your-super-secret-session-key-change-in-production
+ADMIN_PASSWORD=your-secure-admin-password
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=https://your-backend.railway.app/api/auth/google/callback
 
 # DataForSEO (optionnel)
 DATAFORSEO_API_KEY=...
@@ -72,10 +79,13 @@ DATAFORSEO_LOGIN=...
 # Server
 PORT=3000
 NODE_ENV=production
+HOST=0.0.0.0
 
 # CORS (URL du frontend)
 FRONTEND_URL=https://your-frontend.vercel.app
 ```
+
+**Note importante :** Les migrations de base de données sont appliquées automatiquement lors du déploiement. Aucune action manuelle n'est requise.
 
 ### 5. Configuration du Build
 
@@ -126,20 +136,42 @@ Railway détectera automatiquement un projet Node.js. Si besoin, créer un `rail
 
 ## Configuration Base de Données
 
-### 1. Migrations Prisma
+### Migrations Automatiques sur Railway
+
+**Les migrations de base de données sont exécutées automatiquement lors du déploiement.**
+
+Le script `railway-start.js` s'exécute automatiquement et :
+1. Génère le client Prisma (`prisma generate`)
+2. **Applique automatiquement toutes les migrations** (`prisma migrate deploy`)
+3. Démarre le serveur
+
+**Aucune action manuelle n'est requise** - Railway gère tout automatiquement à chaque déploiement.
+
+### Comment ça fonctionne
+
+1. Lorsque vous poussez du code sur GitHub, Railway détecte les changements
+2. Railway exécute `npm install` (qui déclenche `postinstall` → `prisma generate`)
+3. Railway exécute `npm run build` pour compiler TypeScript
+4. Railway exécute `npm run railway` qui :
+   - Génère le client Prisma
+   - **Applique les migrations** (`prisma migrate deploy`)
+   - Démarre le serveur
+
+### Créer de nouvelles migrations (développement local)
 
 ```bash
 # Dans le dossier backend
-npx prisma migrate dev --name init
+npx prisma migrate dev --name nom_de_la_migration
 ```
 
-### 2. Générer le Client Prisma
+Cette commande :
+- Crée un nouveau fichier de migration
+- Applique la migration à votre base de données locale
+- Génère le client Prisma
 
-```bash
-npx prisma generate
-```
+**Important :** Après avoir créé une migration et l'avoir poussée sur GitHub, Railway l'appliquera automatiquement au prochain déploiement.
 
-### 3. Seed (Optionnel)
+### Seed (Optionnel)
 
 Créer un fichier `prisma/seed.ts` pour données de test:
 
@@ -183,20 +215,27 @@ npx prisma db seed
 ### Railway Build Hooks
 
 Railway exécutera automatiquement:
-1. `npm install`
-2. `npm run build` (si présent)
-3. `npm start`
+1. `npm install` (déclenche `postinstall` → génère Prisma Client)
+2. `npm run build` (compile TypeScript et build le frontend)
+3. `npm run railway` (applique les migrations et démarre le serveur)
 
-Pour les migrations, ajouter dans `package.json`:
+Le script `railway-start.js` gère automatiquement :
+- Génération du client Prisma
+- **Application des migrations de base de données** (`prisma migrate deploy`)
+- Démarrage du serveur
+
+**Configuration actuelle dans `package.json`:**
 
 ```json
 {
   "scripts": {
     "postinstall": "prisma generate",
-    "railway": "prisma migrate deploy && npm start"
+    "railway": "node scripts/railway-start.js"
   }
 }
 ```
+
+**Aucune action manuelle requise** - tout est automatisé !
 
 ---
 
@@ -309,18 +348,19 @@ railway rollback
 ## Checklist de Déploiement
 
 ### Pré-déploiement
-- [ ] Variables d'environnement configurées
-- [ ] Base de données migrée
+- [ ] Variables d'environnement configurées dans Railway
+- [ ] Migrations Prisma créées et commitées sur GitHub
 - [ ] Tests locaux passés
-- [ ] Build fonctionne localement
-- [ ] Secrets API configurés (OpenAI, DataForSEO)
+- [ ] Build fonctionne localement (`npm run build`)
+- [ ] Secrets API configurés (OpenAI, Google OAuth, ADMIN_PASSWORD, SESSION_SECRET)
 
 ### Déploiement
-- [ ] Backend déployé sur Railway
+- [ ] Backend déployé sur Railway (migrations appliquées automatiquement)
 - [ ] Frontend déployé sur Vercel/Netlify
-- [ ] Base de données accessible
-- [ ] Health check répond
-- [ ] CORS configuré correctement
+- [ ] Base de données PostgreSQL créée et accessible
+- [ ] Health check répond (`/health`)
+- [ ] CORS configuré correctement (`FRONTEND_URL` dans Railway)
+- [ ] Vérifier les logs Railway pour confirmer que les migrations ont réussi
 
 ### Post-déploiement
 - [ ] Test upload d'image
@@ -334,9 +374,10 @@ railway rollback
 ## Troubleshooting
 
 ### Erreur: "Database connection failed"
-- Vérifier `DATABASE_URL` dans Railway
-- Vérifier que PostgreSQL est actif
-- Vérifier les migrations: `railway run npx prisma migrate deploy`
+- Vérifier `DATABASE_URL` dans Railway (généré automatiquement quand vous ajoutez PostgreSQL)
+- Vérifier que PostgreSQL est actif dans le dashboard Railway
+- Les migrations s'exécutent automatiquement - vérifier les logs Railway pour voir si elles ont réussi
+- Si besoin de forcer les migrations manuellement: `railway run npx prisma migrate deploy`
 
 ### Erreur: "OpenAI API key invalid"
 - Vérifier que la clé API est correcte
