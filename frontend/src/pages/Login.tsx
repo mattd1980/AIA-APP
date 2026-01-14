@@ -67,9 +67,9 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col bg-base-200">
-      <div className="flex-grow flex items-center justify-center px-4 py-8">
+      <div className="flex-grow flex items-center justify-center px-4 py-4 sm:py-8 pb-24 sm:pb-20">
         <div className="card bg-base-100 shadow-2xl w-full max-w-md">
-          <div className="card-body">
+          <div className="card-body pb-4 sm:pb-6">
             <div className="text-center mb-6">
               <h1 className="text-4xl font-bold mb-2">Inventory AI</h1>
               <p className="text-base-content/70">
@@ -150,29 +150,17 @@ export default function Login() {
             </>
           )}
 
-            <p className="text-xs text-center text-base-content/50 mt-4">
+            <p className="text-xs text-center text-base-content/50 mt-6 leading-relaxed px-2 break-words">
               En vous connectant, vous acceptez nos{' '}
-              <a href="/terms" className="link link-primary">
+              <a href="/terms" className="link link-primary break-all">
                 conditions d'utilisation
               </a>{' '}
               et notre{' '}
-              <a href="/privacy" className="link link-primary">
+              <a href="/privacy" className="link link-primary break-all">
                 politique de confidentialité
               </a>
+              .
             </p>
-            <div className="flex justify-center gap-4 mt-2">
-              <a href="/privacy" className="text-xs link link-hover">
-                Confidentialité
-              </a>
-              <span className="text-xs">•</span>
-              <a href="/terms" className="text-xs link link-hover">
-                Conditions
-              </a>
-              <span className="text-xs">•</span>
-              <a href="/cookies" className="text-xs link link-hover">
-                Cookies
-              </a>
-            </div>
           </div>
         </div>
       </div>
