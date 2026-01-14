@@ -1,7 +1,13 @@
 // Simple Express server to serve the frontend static files
 // This is used when deploying to Railway as a separate service
-const express = require('express');
-const path = require('path');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
