@@ -12,9 +12,12 @@ cmds = [
   "cd backend && npm run build",
   "cd ../frontend && npm ci && npm run build",
   "echo '=== Frontend build verification ==='",
-  "ls -la ../frontend/dist || echo 'Frontend dist not found'",
   "test -d ../frontend/dist && echo 'Frontend dist directory exists' || echo 'Frontend dist directory missing'",
-  "test -f ../frontend/dist/index.html && echo 'Frontend index.html exists' || echo 'Frontend index.html missing'"
+  "test -f ../frontend/dist/index.html && echo 'Frontend index.html exists' || echo 'Frontend index.html missing'",
+  "echo '=== Copying frontend dist to backend ==='",
+  "mkdir -p backend/public",
+  "cp -r ../frontend/dist/* backend/public/ || echo 'Failed to copy frontend dist'",
+  "test -f backend/public/index.html && echo 'Frontend copied successfully' || echo 'Frontend copy failed'"
 ]
 
 [start]

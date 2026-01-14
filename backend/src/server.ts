@@ -49,12 +49,15 @@ app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
 // Try multiple possible paths (Railway might structure things differently)
+// Note: Railway with Root Directory = "backend" can't access ../frontend/dist
+// So we copy frontend/dist to backend/public during build
 const possiblePaths = [
-  path.join(process.cwd(), '../frontend/dist'), // from backend -> repo root -> frontend/dist
-  path.join(__dirname, '../../frontend/dist'), // backend/dist -> backend -> repo root -> frontend/dist
+  path.join(process.cwd(), 'public'), // backend/public (Railway with root dir = backend)
+  path.join(__dirname, '../public'), // backend/dist/../public
+  path.join(process.cwd(), '../frontend/dist'), // from backend -> repo root -> frontend/dist (local dev)
+  path.join(__dirname, '../../frontend/dist'), // backend/dist -> backend -> repo root -> frontend/dist (local dev)
   path.join(__dirname, '../../../frontend/dist'), // if running from different location
   path.join(process.cwd(), 'frontend/dist'), // if frontend is in backend directory
-  path.join(process.cwd(), '../../frontend/dist'), // if running from backend/dist
 ];
 
 // Log all paths for debugging
