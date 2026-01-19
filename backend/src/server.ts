@@ -42,25 +42,34 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Middleware
+// FRONTEND_URL can be:
+// - exact origin: https://your-frontend.up.railway.app
+// - "*" to allow any origin (reflected) (useful during setup)
+// - comma-separated list of origins
 const devOrigins = ['http://localhost:5173', 'http://localhost:4173'];
-const envOrigin = process.env.FRONTEND_URL?.trim();
-const allowedOrigins = [envOrigin, ...devOrigins].filter(Boolean) as string[];
+const rawFrontendUrl = process.env.FRONTEND_URL?.trim();
+const envOrigins = rawFrontendUrl
+  ? rawFrontendUrl.split(',').map((s) => s.trim()).filter(Boolean)
+  : [];
+const allowAnyOrigin = envOrigins.includes('*');
+const allowedOrigins = [...envOrigins.filter((o) => o !== '*'), ...devOrigins];
 
-app.use(
-  cors({
-    origin: (origin, cb) => {
-      // Allow non-browser requests (no Origin header), like health checks
-      if (!origin) return cb(null, true);
-      if (allowedOrigins.includes(origin)) return cb(null, true);
-      return cb(null, false);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-// Ensure preflight requests are handled
-app.options('*', cors());
+const corsOptions: cors.CorsOptions = {
+  origin: (origin, cb) => {
+    // Allow non-browser requests (no Origin header), like health checks
+    if (!origin) return cb(null, true);
+    if (allowAnyOrigin) return cb(null, true); // reflect origin
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+// Ensure preflight requests are handled with the same options
+app.options('*', cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
