@@ -15,6 +15,10 @@ dotenv.config();
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Railway/Reverse-proxy support (required for secure cookies behind proxy)
+// https://expressjs.com/en/guide/behind-proxies.html
+app.set('trust proxy', 1);
+
 // Session configuration
 app.use(
   session({
@@ -22,8 +26,12 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // Use secure cookies in production (HTTPS)
+      // Use secure cookies in production (HTTPS)
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
+      // If frontend is on a different Railway domain, cookies are cross-site:
+      // requires SameSite=None + Secure or the browser will drop the session cookie.
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
     },
   })
@@ -34,10 +42,26 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-  credentials: true,
-}));
+const devOrigins = ['http://localhost:5173', 'http://localhost:4173'];
+const envOrigin = process.env.FRONTEND_URL?.trim();
+const allowedOrigins = [envOrigin, ...devOrigins].filter(Boolean) as string[];
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow non-browser requests (no Origin header), like health checks
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(null, false);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+// Ensure preflight requests are handled
+app.options('*', cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
