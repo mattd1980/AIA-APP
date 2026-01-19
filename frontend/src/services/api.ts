@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Use relative URL in production (same domain), or env variable if set
-const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
+// In production we prefer same-origin calls (no CORS) and let the frontend server proxy `/api/*`
+// to the backend. In dev we still hit localhost backend directly.
+const API_URL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
 
 const api = axios.create({
   baseURL: API_URL,
@@ -153,6 +154,7 @@ export const inventoryApi = {
   },
 
   getImageUrl: (inventoryId: string, imageId: string): string => {
+    // If API_URL is empty (prod), this becomes a same-origin relative URL.
     return `${API_URL}/api/inventories/${inventoryId}/images/${imageId}`;
   },
 };

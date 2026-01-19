@@ -4,6 +4,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -12,6 +13,35 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
+const BACKEND_URL = process.env.BACKEND_URL;
+
+// Proxy API requests to backend to avoid CORS/cookie issues.
+// Browser calls same-origin /api/* -> this server forwards to BACKEND_URL.
+if (BACKEND_URL) {
+  app.use(
+    '/api',
+    createProxyMiddleware({
+      target: BACKEND_URL,
+      changeOrigin: true,
+      xfwd: true,
+      // Preserve cookies for same-origin usage on the frontend domain
+      cookieDomainRewrite: '',
+      // Railway is HTTPS; backend is HTTPS
+      secure: true,
+    })
+  );
+  app.use(
+    '/health',
+    createProxyMiddleware({
+      target: BACKEND_URL,
+      changeOrigin: true,
+      xfwd: true,
+      secure: true,
+    })
+  );
+} else {
+  console.warn('⚠️  BACKEND_URL is not set. /api requests will 404.');
+}
 
 // Serve static files from the dist directory
 const distPath = path.join(__dirname, 'dist');
