@@ -4,21 +4,13 @@ import { faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortaw
 import { inventoryApi } from '../services/api';
 import type { InventoryItem } from '../services/api';
 import ImageWithBoundingBox from './ImageWithBoundingBox';
+import { CATEGORY_OPTIONS as categories } from '../constants/categories';
 
 interface EditableItemProps {
   item: InventoryItem;
   inventoryId: string;
   onUpdate: () => void;
 }
-
-const categories = [
-  { value: 'furniture', label: 'Meubles' },
-  { value: 'electronics', label: 'Électronique' },
-  { value: 'clothing', label: 'Vêtements' },
-  { value: 'appliances', label: 'Électroménagers' },
-  { value: 'decor', label: 'Décoration' },
-  { value: 'other', label: 'Autre' },
-];
 
 const conditions = [
   { value: 'new', label: 'Neuf' },
@@ -274,7 +266,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
           <div className="mt-3 mb-3">
             <p className="text-xs text-base-content/60 mb-2">
               <FontAwesomeIcon icon={faImage} className="mr-1" />
-              Image(s) source:
+              Image(s) d'origine :
             </p>
             <div className="flex gap-2 flex-wrap">
               {item.images.map((image) => {
@@ -338,7 +330,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               ) : (
                 <img
                   src={inventoryApi.getImageUrl(inventoryId, selectedImage)}
-                  alt="Full size"
+                  alt="Pleine grandeur"
                   className="max-w-full max-h-[90vh] w-full object-contain rounded-lg"
                 />
               )}

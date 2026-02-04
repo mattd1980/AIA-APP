@@ -44,10 +44,21 @@ export default function Header() {
             </ul>
           </div>
         )}
-        <a href="/new" className="btn btn-primary">
+        <a href="/location/new" className="btn btn-primary">
           <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Nouvel Inventaire
+          Nouveau lieu
         </a>
+        {user && (
+          <button
+            type="button"
+            onClick={logout}
+            className="btn btn-ghost gap-2"
+            title="Déconnexion"
+          >
+            <FontAwesomeIcon icon={faSignOutAlt} />
+            <span className="hidden sm:inline">Déconnexion</span>
+          </button>
+        )}
       </div>
     </header>
   );

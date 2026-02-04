@@ -210,7 +210,10 @@ export default function InventoryDetail() {
               {inventory.status === 'processing' && (
                 <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
               )}
-              {inventory.status}
+              {inventory.status === 'draft' && 'Brouillon'}
+              {inventory.status === 'processing' && 'En cours'}
+              {inventory.status === 'completed' && 'Terminé'}
+              {inventory.status === 'error' && 'Erreur'}
             </span>
           </div>
 
@@ -296,7 +299,7 @@ export default function InventoryDetail() {
               <div>
                 <h3 className="card-title">Analyse en cours</h3>
                 <p className="text-sm text-base-content/70">
-                  Traitement des images avec GPT-5.2-Thinking...
+                  Traitement des images en cours…
                 </p>
               </div>
             </div>
@@ -326,7 +329,7 @@ export default function InventoryDetail() {
               <div className="mt-4">
                 <details className="collapse collapse-arrow bg-base-200">
                   <summary className="collapse-title text-sm font-medium">
-                    Détails de traitement (Debug)
+                    Détails de traitement (débogage)
                   </summary>
                   <div className="collapse-content">
                     <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-48">
@@ -365,7 +368,7 @@ export default function InventoryDetail() {
             {inventory.metadata && (
               <details className="collapse collapse-arrow bg-base-200 mt-4">
                 <summary className="collapse-title text-sm font-medium">
-                  Détails de l'erreur (Debug)
+                  Détails de l'erreur (débogage)
                 </summary>
                 <div className="collapse-content">
                   <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-48">
@@ -393,7 +396,7 @@ export default function InventoryDetail() {
             {inventory.metadata && (
               <details className="collapse collapse-arrow bg-base-200 mt-4">
                 <summary className="collapse-title text-sm font-medium">
-                  Informations de debug
+                  Informations de débogage
                 </summary>
                 <div className="collapse-content">
                   <div className="text-sm space-y-2">
@@ -411,7 +414,7 @@ export default function InventoryDetail() {
                     )}
                   </div>
                   <details className="mt-2">
-                    <summary className="text-xs cursor-pointer">JSON complet</summary>
+                    <summary className="text-xs cursor-pointer">JSON complet (débogage)</summary>
                     <pre className="text-xs bg-base-300 p-4 rounded overflow-auto max-h-48 mt-2">
                       {JSON.stringify(inventory.metadata, null, 2)}
                     </pre>
@@ -425,7 +428,7 @@ export default function InventoryDetail() {
 
       {inventory.items && inventory.items.length > 0 && (
         <div>
-          <h2 className="text-2xl font-bold mb-4">Items Identifiés ({inventory.items.length})</h2>
+          <h2 className="text-2xl font-bold mb-4">Objets identifiés ({inventory.items.length})</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {inventory.items.map((item) => (
               <EditableItem

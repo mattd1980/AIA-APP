@@ -6,9 +6,13 @@ import { existsSync } from 'fs';
 import session from 'express-session';
 import passport from 'passport';
 import inventoryRoutes from './routes/inventories';
+import locationRoutes from './routes/locations';
+import roomRoutes from './routes/rooms';
+import safeRoutes from './routes/safes';
 import healthRoutes from './routes/health';
 import reportRoutes from './routes/reports';
 import authRoutes from './routes/auth';
+import exportRoutes from './routes/export';
 
 dotenv.config();
 
@@ -78,6 +82,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/inventories', inventoryRoutes);
 app.use('/api/inventories', reportRoutes);
+app.use('/api/locations', locationRoutes);
+app.use('/api/rooms', roomRoutes);
+app.use('/api/safes', safeRoutes);
+app.use('/api/export', exportRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
@@ -134,7 +142,7 @@ if (frontendDistPath && existsSync(frontendDistPath)) {
 app.get('*', (req, res) => {
   // Don't serve index.html for API routes or auth routes
   if (req.path.startsWith('/api/') || req.path.startsWith('/health')) {
-    return res.status(404).json({ error: 'Not found' });
+    return res.status(404).json({ error: 'Non trouvé' });
   }
   
   // Try to serve index.html if frontend dist exists

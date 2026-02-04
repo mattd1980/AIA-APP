@@ -5,11 +5,26 @@ import { faUser, faLock } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import Footer from '../components/Footer';
 
+type DbStatus = 'checking' | 'ok' | 'error';
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState<DbStatus>('checking');
+
+  useEffect(() => {
+    const checkDb = async () => {
+      try {
+        const res = await api.get('/health/db');
+        setDbStatus(res.data?.status === 'ok' ? 'ok' : 'error');
+      } catch {
+        setDbStatus('error');
+      }
+    };
+    checkDb();
+  }, []);
 
   useEffect(() => {
     // Check if user is already logged in
@@ -68,7 +83,19 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col bg-base-200">
       <div className="flex-grow flex items-center justify-center px-4 py-4 sm:py-8 pb-24 sm:pb-20">
-        <div className="card bg-base-100 shadow-2xl w-full max-w-md">
+        <div className="card bg-base-100 shadow-2xl w-full max-w-md relative">
+          {/* Database status LED - top right of card */}
+          <span
+            className={`absolute top-4 right-4 inline-block w-3 h-3 rounded-full border border-base-content/20 ${
+              dbStatus === 'checking'
+                ? 'bg-amber-400 animate-pulse'
+                : dbStatus === 'ok'
+                  ? 'bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
+                  : 'bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.6)]'
+            }`}
+            title={dbStatus === 'ok' ? 'Base de données connectée' : dbStatus === 'error' ? 'Base de données indisponible' : 'Vérification…'}
+            aria-hidden
+          />
           <div className="card-body pb-4 sm:pb-6">
             <div className="text-center mb-6">
               <h1 className="text-4xl font-bold mb-2">Inventory AI</h1>
@@ -125,7 +152,7 @@ export default function Login() {
 
               <button
                 type="submit"
-                className="btn btn-primary w-full"
+                className="btn btn-primary w-full border-2 border-primary/40 shadow-md"
                 disabled={loading}
               >
                 {loading ? (

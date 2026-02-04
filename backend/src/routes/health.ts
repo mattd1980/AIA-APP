@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
   } catch (error) {
     res.status(503).json({
       status: 'error',
-      error: 'Service unavailable',
+      error: 'Service indisponible',
     });
   }
 });

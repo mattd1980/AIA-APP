@@ -29,7 +29,7 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
     const userId = (req as AuthenticatedRequest).user!.id;
     
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No images provided' });
+      return res.status(400).json({ error: 'Aucune image fournie' });
     }
 
     const inventory = await inventoryService.createInventory(userId, name);
@@ -46,11 +46,11 @@ router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
       id: inventory.id,
       status: inventory.status,
       createdAt: inventory.createdAt,
-      message: 'Inventory created, processing started',
+      message: 'Inventaire créé, traitement en cours',
     });
   } catch (error: any) {
     console.error('Error creating inventory:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -62,13 +62,13 @@ router.get('/:id', requireAuth, async (req, res) => {
     const inventory = await inventoryService.getInventoryById(inventoryId, userId);
     
     if (!inventory) {
-      return res.status(404).json({ error: 'Inventory not found' });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
 
     res.json(inventory);
   } catch (error: any) {
     console.error('Error fetching inventory:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -84,7 +84,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.json(result);
   } catch (error: any) {
     console.error('Error listing inventories:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -98,18 +98,18 @@ router.get('/:id/images/:imageId', requireAuth, async (req, res) => {
     // Verify inventory belongs to user
     const inventory = await inventoryService.getInventoryById(inventoryId, userId);
     if (!inventory) {
-      return res.status(404).json({ error: 'Inventory not found' });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
 
     const image = await imageService.getImageById(imageId);
     
     if (!image) {
-      return res.status(404).json({ error: 'Image not found' });
+      return res.status(404).json({ error: 'Image introuvable' });
     }
 
     // Verify image belongs to this inventory
     if (image.inventoryId !== inventoryId) {
-      return res.status(403).json({ error: 'Image does not belong to this inventory' });
+      return res.status(403).json({ error: 'Cette image n\'appartient pas à cet inventaire' });
     }
 
     res.setHeader('Content-Type', image.imageType);
@@ -117,7 +117,7 @@ router.get('/:id/images/:imageId', requireAuth, async (req, res) => {
     res.send(image.imageData);
   } catch (error: any) {
     console.error('Error fetching image:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -130,10 +130,10 @@ router.patch('/:id', requireAuth, async (req, res) => {
     res.json(updatedInventory);
   } catch (error: any) {
     if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: error.message });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
     console.error('Error updating inventory:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -145,17 +145,17 @@ router.post('/:id/images', requireAuth, upload.array('images', 10), async (req, 
     const userId = (req as AuthenticatedRequest).user!.id;
     
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No images provided' });
+      return res.status(400).json({ error: 'Aucune image fournie' });
     }
 
     const result = await inventoryService.addImagesToInventory(inventoryId, userId, files);
     res.json(result);
   } catch (error: any) {
     if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: error.message });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
     console.error('Error adding images to inventory:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -175,10 +175,10 @@ router.patch('/:id/items/:itemId', requireAuth, async (req, res) => {
     res.json(updatedItem);
   } catch (error: any) {
     if (error.message === 'Inventory not found' || error.message === 'Item not found') {
-      return res.status(404).json({ error: error.message });
+      return res.status(404).json({ error: error.message === 'Item not found' ? 'Objet introuvable' : 'Inventaire introuvable' });
     }
     console.error('Error updating item:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -190,13 +190,13 @@ router.delete('/:id/items/:itemId', requireAuth, async (req, res) => {
     const itemId = String(req.params.itemId);
     
     await inventoryService.deleteItem(inventoryId, itemId, userId);
-    res.json({ message: 'Item deleted successfully' });
+    res.json({ message: 'Objet supprimé' });
   } catch (error: any) {
     if (error.message === 'Inventory not found' || error.message === 'Item not found') {
-      return res.status(404).json({ error: error.message });
+      return res.status(404).json({ error: error.message === 'Item not found' ? 'Objet introuvable' : 'Inventaire introuvable' });
     }
     console.error('Error deleting item:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 
@@ -206,13 +206,13 @@ router.delete('/:id', requireAuth, async (req, res) => {
     const userId = (req as AuthenticatedRequest).user!.id;
     const inventoryId = String(req.params.id);
     await inventoryService.deleteInventory(inventoryId, userId);
-    res.json({ message: 'Inventory deleted successfully' });
+    res.json({ message: 'Inventaire supprimé' });
   } catch (error: any) {
     if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: error.message });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
     console.error('Error deleting inventory:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 

@@ -23,5 +23,5 @@ export const requireAuth = (
   if (req.user) {
     return next();
   }
-  res.status(401).json({ error: 'Authentication required' });
+  res.status(401).json({ error: 'Authentification requise' });
 };

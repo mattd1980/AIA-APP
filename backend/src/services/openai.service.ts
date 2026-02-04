@@ -38,51 +38,38 @@ class OpenAIService {
             content: [
               {
                 type: 'input_text',
-                text: `Vous analysez une photo à des fins d'inventaire d'assurance. Identifiez TOUS les objets visibles, meubles, appareils électroniques, électroménagers, décorations et effets personnels dans cette image.
+                text: `Vous analysez une photo pour un inventaire d'assurance habitation. Listez UNIQUEMENT les OBJETS et BIENS susceptibles d'être assurés (meubles, électronique, électroménager, bijoux, œuvres d'art, objets de valeur, etc.).
 
-IMPORTANT: Toutes vos réponses doivent être en FRANÇAIS.
+RÈGLES ABSOLUES — À RESPECTER STRICTEMENT:
+- NE LISTEZ JAMAIS de personnes: ni adultes, ni enfants, ni bébés, ni silhouettes humaines. Les personnes ne sont PAS des objets et ne doivent jamais apparaître dans la liste.
+- NE LISTEZ PAS les animaux (chiens, chats, etc.) comme objets d'inventaire.
+- IGNOREZ les objets sans valeur significative pour l'assurance: gobelets jetables, crayons, papiers, déchets, nourriture périssable, produits de consommation courante sans valeur, etc.
+- Concentrez-vous sur les biens que les assureurs prennent typiquement en compte: meubles, électronique, électroménager, bijoux, art, collections, équipement sportif, vêtements de valeur, décoration, etc.
 
-Pour CHAQUE objet que vous identifiez, fournissez:
-- name: Un nom clair et spécifique en français (ex: "Téléviseur LED Samsung 55 pouces" et non juste "TV")
-- category: Un parmi: furniture, electronics, clothing, appliances, decor, other (gardez les valeurs en anglais pour la catégorie)
-- brand: Le nom de la marque si visible ou identifiable (laissez null si inconnu)
-- model: Le numéro de modèle ou nom si visible (laissez null si inconnu)
-- condition: Un parmi: new, excellent, good, fair, poor (basé sur l'usure/dommages visibles)
-- estimatedAge: Âge approximatif en années (0 si neuf, estimez basé sur le style/l'usure)
-- description: Une description détaillée EN FRANÇAIS incluant le matériau, la couleur, les dimensions estimées, et toute caractéristique distinctive qui aiderait à l'identifier pour les réclamations d'assurance
-- boundingBox: L'emplacement de l'objet dans l'image en coordonnées normalisées (plage 0-1):
-  - x: Position du bord gauche (0 = le plus à gauche, 1 = le plus à droite)
-  - y: Position du bord supérieur (0 = le plus haut, 1 = le plus bas)
-  - width: Largeur de la boîte englobante (0-1, relative à la largeur de l'image)
-  - height: Hauteur de la boîte englobante (0-1, relative à la hauteur de l'image)
+Toutes vos réponses doivent être en FRANÇAIS.
 
-IMPORTANT:
-- Listez TOUS les objets que vous pouvez voir, même les petits
-- Soyez spécifique et détaillé dans les descriptions (en français)
-- Incluez les dimensions si vous pouvez les estimer
-- Notez tout dommage ou usure visible
-- Pour les meubles, notez le matériau (bois, métal, tissu, etc.)
-- Pour l'électronique, incluez la taille de l'écran, le type, etc. si visible
-- Fournissez des coordonnées de boîte englobante précises au format normalisé (plage 0-1) pour chaque objet
-- La boîte englobante doit étroitement entourer la portion visible de chaque objet
+Pour CHAQUE OBJET (jamais de personne) identifié, fournissez:
+- name: Nom clair et spécifique en français (ex: "Téléviseur LED Samsung 55 pouces")
+- category: UN SEUL parmi (en anglais): furniture, electronics, clothing, appliances, decor, jewelry, art, collectibles, sports_equipment, other
+- brand: Marque si visible (null sinon)
+- model: Modèle si visible (null sinon)
+- condition: Un parmi: new, excellent, good, fair, poor
+- estimatedAge: Âge approximatif en années (0 si neuf)
+- description: Description en français (matériau, couleur, dimensions estimées, caractéristiques utiles pour une réclamation)
+- boundingBox: Coordonnées normalisées (0-1): x (gauche), y (haut), width, height
 
 Retournez UNIQUEMENT du JSON valide dans ce format exact:
 {
   "items": [
     {
       "name": "Nom de l'objet en français",
-      "category": "furniture|electronics|clothing|appliances|decor|other",
-      "brand": "Nom de la marque ou null",
-      "model": "Nom du modèle ou null",
+      "category": "furniture|electronics|clothing|appliances|decor|jewelry|art|collectibles|sports_equipment|other",
+      "brand": "Marque ou null",
+      "model": "Modèle ou null",
       "condition": "new|excellent|good|fair|poor",
       "estimatedAge": 0,
-      "description": "Description détaillée en français avec matériau, couleur, taille, caractéristiques",
-      "boundingBox": {
-        "x": 0.25,
-        "y": 0.30,
-        "width": 0.20,
-        "height": 0.15
-      }
+      "description": "Description détaillée en français",
+      "boundingBox": { "x": 0.25, "y": 0.30, "width": 0.20, "height": 0.15 }
     }
   ]
 }`,
@@ -118,12 +105,25 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
         }
       }
 
-      const items = parsed.items || [];
-      console.log(`OpenAI identified ${items.length} items in image`);
+      const rawItems = parsed.items || [];
+      const validCategories: ItemCategory[] = ['furniture', 'electronics', 'clothing', 'appliances', 'decor', 'jewelry', 'art', 'collectibles', 'sports_equipment', 'other'];
+      const personKeywords = /\b(personne|person|people|humain|human|child|children|kid|kids|baby|bébé|adult|adulte|homme|woman|femme|enfant|man|woman|visage|face)\b/i;
+      const items = rawItems.filter((item: any) => {
+        const name = (item.name || '').toString();
+        const desc = (item.description || '').toString();
+        if (personKeywords.test(name) || personKeywords.test(desc)) {
+          console.warn(`OpenAI: excluding person-like item from list: "${name}"`);
+          return false;
+        }
+        return true;
+      });
+      console.log(`OpenAI identified ${items.length} items in image (${rawItems.length - items.length} excluded as person/non-object)`);
 
-      return items.map((item: any) => ({
+      return items.map((item: any) => {
+        const cat = validCategories.includes(item.category) ? item.category : 'other';
+        return {
         name: item.name || 'Unknown Item',
-        category: (item.category || 'other') as ItemCategory,
+        category: cat as ItemCategory,
         brand: item.brand || undefined,
         model: item.model || undefined,
         condition: (item.condition || 'good') as any,
@@ -135,7 +135,8 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
           width: Math.max(0, Math.min(1, item.boundingBox.width || 0)),
           height: Math.max(0, Math.min(1, item.boundingBox.height || 0)),
         } : undefined,
-      }));
+      };
+      });
     } catch (error: any) {
       console.error('OpenAI API error:', error);
       if (error.response) {

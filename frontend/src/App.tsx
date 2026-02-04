@@ -5,6 +5,10 @@ import Footer from './components/Footer';
 import Home from './pages/Home';
 import Upload from './pages/Upload';
 import InventoryDetail from './pages/InventoryDetail';
+import LocationNew from './pages/LocationNew';
+import LocationDetail from './pages/LocationDetail';
+import RoomDetail from './pages/RoomDetail';
+import SafeDetail from './pages/SafeDetail';
 import Login from './pages/Login';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
@@ -29,6 +33,10 @@ function App() {
                   <main className="flex-grow">
                     <Routes>
                       <Route path="/" element={<Home />} />
+                      <Route path="/location/new" element={<LocationNew />} />
+                      <Route path="/location/:id" element={<LocationDetail />} />
+                      <Route path="/room/:id" element={<RoomDetail />} />
+                      <Route path="/safe/:id" element={<SafeDetail />} />
                       <Route path="/new" element={<Upload />} />
                       <Route path="/inventory/:id" element={<InventoryDetail />} />
                       <Route path="*" element={<Navigate to="/" replace />} />

@@ -25,6 +25,16 @@ export default function InventoryCard({ inventory, onDelete }: InventoryCardProp
     return <FontAwesomeIcon icon={faBox} />;
   };
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: 'Brouillon',
+      processing: 'En cours',
+      completed: 'Terminé',
+      error: 'Erreur',
+    };
+    return labels[status] ?? status;
+  };
+
   return (
     <div className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
       <div className="card-body">
@@ -34,7 +44,7 @@ export default function InventoryCard({ inventory, onDelete }: InventoryCardProp
             <span className="ml-2">{inventory.name || `Inventaire #${inventory.id.slice(0, 8)}`}</span>
           </h2>
           <span className={`badge ${getStatusBadge(inventory.status)}`}>
-            {inventory.status}
+            {getStatusLabel(inventory.status)}
           </span>
         </div>
         <div className="flex items-center gap-4 mt-2">
@@ -46,7 +56,7 @@ export default function InventoryCard({ inventory, onDelete }: InventoryCardProp
           </div>
           <div className="flex items-center gap-2">
             <FontAwesomeIcon icon={faBox} className="text-accent" />
-            <span>{inventory.itemCount || 0} items</span>
+            <span>{inventory.itemCount || 0} objet{(inventory.itemCount ?? 0) !== 1 ? 's' : ''}</span>
           </div>
         </div>
         <div className="card-actions justify-end mt-4">

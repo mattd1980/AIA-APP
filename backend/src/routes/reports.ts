@@ -39,12 +39,12 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
     });
 
     if (!inventory) {
-      return res.status(404).json({ error: 'Inventory not found' });
+      return res.status(404).json({ error: 'Inventaire introuvable' });
     }
 
     if (inventory.status !== 'completed') {
       return res.status(400).json({ 
-        error: 'Inventory must be completed before generating report' 
+        error: 'L\'inventaire doit être terminé avant de générer le rapport' 
       });
     }
 
@@ -107,7 +107,7 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
       } catch (error: any) {
         console.error('Error finalizing PDF:', error);
         if (!res.headersSent) {
-          res.status(500).json({ error: 'Error generating PDF report' });
+          res.status(500).json({ error: 'Erreur lors de la génération du rapport PDF' });
         }
       }
     });
@@ -115,7 +115,7 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
     doc.on('error', (error: Error) => {
       console.error('PDF generation error:', error);
       if (!res.headersSent) {
-        res.status(500).json({ error: 'Error generating PDF report' });
+        res.status(500).json({ error: 'Erreur lors de la génération du rapport PDF' });
       }
     });
 
@@ -125,7 +125,8 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
     
     doc.fontSize(12);
     doc.text(`Date: ${new Date(inventory.createdAt).toLocaleDateString('fr-CA')}`);
-    doc.text(`Statut: ${inventory.status}`);
+    const statusLabels: Record<string, string> = { draft: 'Brouillon', processing: 'En cours', completed: 'Terminé', error: 'Erreur' };
+    doc.text(`Statut: ${statusLabels[inventory.status] ?? inventory.status}`);
     doc.text(`Valeur totale estimée: $${Number(inventory.totalEstimatedValue).toFixed(2)} CAD`);
     doc.text(`Montant d'assurance recommandé: $${Number(inventory.recommendedInsuranceAmount).toFixed(2)} CAD`);
     doc.moveDown();
@@ -175,16 +176,18 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
 
     // Items
     if (inventoryWithRelations.items && inventoryWithRelations.items.length > 0) {
-      doc.fontSize(16).text('Items Inventoriés', { underline: true });
+      doc.fontSize(16).text('Objets inventoriés', { underline: true });
       doc.moveDown();
 
+      const categoryLabels: Record<string, string> = { furniture: 'Meubles', electronics: 'Électronique', clothing: 'Vêtements', appliances: 'Électroménagers', decor: 'Décoration', other: 'Autre' };
+      const conditionLabels: Record<string, string> = { new: 'Neuf', excellent: 'Excellent', good: 'Bon', fair: 'Passable', poor: 'Mauvais' };
       for (const [index, item] of inventoryWithRelations.items.entries()) {
         doc.fontSize(12);
         doc.text(`${index + 1}. ${item.itemName}`, { continued: false });
         if (item.brand) doc.text(`   Marque: ${item.brand}`, { indent: 20 });
         if (item.model) doc.text(`   Modèle: ${item.model}`, { indent: 20 });
-        doc.text(`   Catégorie: ${item.category}`, { indent: 20 });
-        doc.text(`   État: ${item.condition}`, { indent: 20 });
+        doc.text(`   Catégorie: ${categoryLabels[item.category] ?? item.category}`, { indent: 20 });
+        doc.text(`   État: ${conditionLabels[item.condition] ?? item.condition}`, { indent: 20 });
         if (item.estimatedAge !== null && item.estimatedAge !== undefined) {
           doc.text(`   Âge estimé: ${item.estimatedAge} an(s)`, { indent: 20 });
         }
@@ -243,13 +246,13 @@ router.post('/:inventoryId/report', requireAuth, async (req, res) => {
         doc.moveDown(1);
       }
     } else {
-      doc.fontSize(12).text('Aucun item identifié dans cet inventaire.', { align: 'center' });
+      doc.fontSize(12).text('Aucun objet identifié dans cet inventaire.', { align: 'center' });
     }
 
     doc.end();
   } catch (error: any) {
     console.error('Error generating report:', error);
-    res.status(500).json({ error: error.message || 'Internal server error' });
+    res.status(500).json({ error: error.message || 'Erreur serveur' });
   }
 });
 

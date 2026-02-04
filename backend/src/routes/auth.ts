@@ -19,13 +19,13 @@ passport.use(
       try {
         // Only allow 'admin' username
         if (username !== 'admin') {
-          return done(null, false, { message: 'Invalid username' });
+          return done(null, false, { message: 'Nom d\'utilisateur invalide' });
         }
 
         // Validate password
         const isValid = await authService.validateAdminPassword(password);
         if (!isValid) {
-          return done(null, false, { message: 'Invalid password' });
+          return done(null, false, { message: 'Mot de passe incorrect' });
         }
 
         // Get or create admin user
@@ -113,14 +113,14 @@ passport.deserializeUser(async (id: string, done) => {
 router.post('/login', (req: Request, res: Response, next) => {
   passport.authenticate('local', (err: any, user: any, info: any) => {
     if (err) {
-      return res.status(500).json({ error: 'Authentication error' });
+      return res.status(500).json({ error: 'Erreur d\'authentification' });
     }
     if (!user) {
-      return res.status(401).json({ error: info?.message || 'Invalid credentials' });
+      return res.status(401).json({ error: info?.message || 'Identifiants incorrects' });
     }
     req.logIn(user, (loginErr) => {
       if (loginErr) {
-        return res.status(500).json({ error: 'Login error' });
+        return res.status(500).json({ error: 'Erreur de connexion' });
       }
       return res.json({
         id: user.id,
@@ -152,11 +152,11 @@ if (GOOGLE_ENABLED) {
 } else {
   // Return 503 Service Unavailable if Google OAuth is disabled
   router.get('/google', (req: Request, res: Response) => {
-    res.status(503).json({ error: 'Google OAuth is not configured' });
+    res.status(503).json({ error: 'Google OAuth n\'est pas configuré' });
   });
 
   router.get('/google/callback', (req: Request, res: Response) => {
-    res.status(503).json({ error: 'Google OAuth is not configured' });
+    res.status(503).json({ error: 'Google OAuth n\'est pas configuré' });
   });
 }
 
@@ -176,7 +176,7 @@ router.get('/me', (req: Request, res: Response) => {
       picture: user.picture,
     });
   } else {
-    res.status(401).json({ error: 'Not authenticated' });
+    res.status(401).json({ error: 'Non authentifié' });
   }
 });
 
@@ -184,9 +184,9 @@ router.get('/me', (req: Request, res: Response) => {
 router.post('/logout', (req: Request, res: Response) => {
   (req as any).logout((err: any) => {
     if (err) {
-      return res.status(500).json({ error: 'Logout failed' });
+      return res.status(500).json({ error: 'Échec de la déconnexion' });
     }
-    res.json({ message: 'Logged out successfully' });
+    res.json({ message: 'Déconnexion réussie' });
   });
 });
 

@@ -12,9 +12,15 @@ body {
 }
 
 /* Ensure button text is always readable with proper contrast */
-/* Primary button (yellow) - use dark text for good contrast */
+/* Primary button (yellow) - always visible, never same as card (base-100) */
 .btn-primary {
   color: #1F2937 !important;
+  background-color: var(--p, #FFD41D) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+.btn-primary:hover,
+.btn-primary.btn-active {
+  background-color: var(--pf, #FFE066) !important;
 }
 
 /* All other colored buttons - use white text for good contrast */

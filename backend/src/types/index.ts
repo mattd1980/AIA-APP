@@ -1,5 +1,5 @@
 export type InventoryStatus = 'draft' | 'processing' | 'completed' | 'error';
-export type ItemCategory = 'furniture' | 'electronics' | 'clothing' | 'appliances' | 'decor' | 'other';
+export type ItemCategory = 'furniture' | 'electronics' | 'clothing' | 'appliances' | 'decor' | 'jewelry' | 'art' | 'collectibles' | 'sports_equipment' | 'other';
 export type ItemCondition = 'new' | 'excellent' | 'good' | 'fair' | 'poor';
 export type ReportType = 'pdf' | 'json' | 'csv';
 
