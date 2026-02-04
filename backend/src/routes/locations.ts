@@ -5,6 +5,8 @@ import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
+const param = (p: string | string[] | undefined): string => (Array.isArray(p) ? p[0] : p) ?? '';
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -46,7 +48,7 @@ router.post('/', requireAuth, async (req, res) => {
 router.get('/:id', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    const location = await locationService.getLocationById(req.params.id, userId);
+    const location = await locationService.getLocationById(param(req.params.id), userId);
     res.json(location);
   } catch (error: any) {
     if (error.message === 'Location not found') {
@@ -62,7 +64,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
     const { name, address } = req.body as { name?: string; address?: string };
-    const location = await locationService.updateLocation(req.params.id, userId, { name, address });
+    const location = await locationService.updateLocation(param(req.params.id), userId, { name, address });
     res.json(location);
   } catch (error: any) {
     if (error.message === 'Location not found') {
@@ -77,7 +79,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
 router.delete('/:id', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await locationService.deleteLocation(req.params.id, userId);
+    await locationService.deleteLocation(param(req.params.id), userId);
     res.json({ message: 'Lieu supprimé' });
   } catch (error: any) {
     if (error.message === 'Location not found') {
@@ -96,7 +98,7 @@ router.post('/:id/rooms', requireAuth, async (req, res) => {
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Le nom de la pièce est requis' });
     }
-    const room = await locationService.addRoom(req.params.id, userId, name.trim());
+    const room = await locationService.addRoom(param(req.params.id), userId, name.trim());
     res.status(201).json(room);
   } catch (error: any) {
     if (error.message === 'Location not found') {
@@ -115,7 +117,7 @@ router.post('/:id/safes', requireAuth, async (req, res) => {
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Le nom du coffre est requis' });
     }
-    const safe = await locationService.addSafe(req.params.id, userId, name.trim());
+    const safe = await locationService.addSafe(param(req.params.id), userId, name.trim());
     res.status(201).json(safe);
   } catch (error: any) {
     if (error.message === 'Location not found') {

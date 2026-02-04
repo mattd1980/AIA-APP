@@ -5,6 +5,7 @@ import { analysisService } from '../services/analysis.service';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
+const param = (p: string | string[] | undefined): string => (Array.isArray(p) ? p[0] : p) ?? '';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -19,7 +20,7 @@ const upload = multer({
 router.get('/:safeId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    const safe = await locationService.getSafeById(req.params.safeId, userId);
+    const safe = await locationService.getSafeById(param(req.params.safeId), userId);
     const { images: safeImages, ...rest } = safe as any;
     const images = safeImages.map((img: any) => ({
       id: img.id,
@@ -66,7 +67,7 @@ router.post('/:safeId/items', requireAuth, async (req, res) => {
     if (!body.category || !body.condition) {
       return res.status(400).json({ error: 'Catégorie et état sont requis' });
     }
-    const item = await locationService.createSafeManualItem(req.params.safeId, userId, {
+    const item = await locationService.createSafeManualItem(param(req.params.safeId), userId, {
       itemName: body.itemName.trim(),
       category: body.category,
       condition: body.condition,
@@ -89,7 +90,7 @@ router.patch('/:safeId/items/:itemId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
     const body = req.body as { itemName?: string; category?: string; condition?: string; estimatedValue?: number; replacementValue?: number; notes?: string };
-    const item = await locationService.updateSafeItem(req.params.safeId, req.params.itemId, userId, {
+    const item = await locationService.updateSafeItem(param(req.params.safeId), param(req.params.itemId), userId, {
       itemName: body.itemName?.trim(),
       category: body.category,
       condition: body.condition,
@@ -111,7 +112,7 @@ router.patch('/:safeId/items/:itemId', requireAuth, async (req, res) => {
 router.delete('/:safeId/items/:itemId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await locationService.deleteSafeItem(req.params.itemId, userId);
+    await locationService.deleteSafeItem(param(req.params.itemId), userId);
     res.json({ message: 'Objet supprimé' });
   } catch (error: any) {
     if (error.message === 'Item not found') {
@@ -126,7 +127,7 @@ router.delete('/:safeId/items/:itemId', requireAuth, async (req, res) => {
 router.post('/:safeId/analyze', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await analysisService.startSafeAnalysis(req.params.safeId, userId);
+    await analysisService.startSafeAnalysis(param(req.params.safeId), userId);
     res.json({ message: 'Analyse lancée', status: 'processing' });
   } catch (error: any) {
     if (error.message === 'Safe not found') {
@@ -148,7 +149,7 @@ router.patch('/:safeId', requireAuth, async (req, res) => {
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: 'Le nom du coffre est requis' });
     }
-    const safe = await locationService.updateSafe(req.params.safeId, userId, name.trim());
+    const safe = await locationService.updateSafe(param(req.params.safeId), userId, name.trim());
     res.json(safe);
   } catch (error: any) {
     if (error.message === 'Safe not found') {
@@ -163,7 +164,7 @@ router.patch('/:safeId', requireAuth, async (req, res) => {
 router.delete('/:safeId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await locationService.deleteSafe(req.params.safeId, userId);
+    await locationService.deleteSafe(param(req.params.safeId), userId);
     res.json({ message: 'Coffre supprimé' });
   } catch (error: any) {
     if (error.message === 'Safe not found') {
@@ -182,7 +183,7 @@ router.post('/:safeId/images', requireAuth, upload.array('images', 20), async (r
     if (!files || files.length === 0) {
       return res.status(400).json({ error: 'Aucune image fournie' });
     }
-    const safeId = req.params.safeId;
+    const safeId = param(req.params.safeId);
     const created = [];
     for (let i = 0; i < files.length; i++) {
       const img = await locationService.saveSafeImage(safeId, userId, files[i], i);
@@ -202,7 +203,7 @@ router.post('/:safeId/images', requireAuth, upload.array('images', 20), async (r
 router.get('/:safeId/images/:imageId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    const img = await locationService.getSafeImageById(req.params.imageId, userId);
+    const img = await locationService.getSafeImageById(param(req.params.imageId), userId);
     res.contentType(img.imageType);
     res.send(img.imageData);
   } catch (error: any) {
@@ -218,7 +219,7 @@ router.get('/:safeId/images/:imageId', requireAuth, async (req, res) => {
 router.delete('/:safeId/images/:imageId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await locationService.deleteSafeImage(req.params.imageId, userId);
+    await locationService.deleteSafeImage(param(req.params.imageId), userId);
     res.json({ message: 'Image supprimée' });
   } catch (error: any) {
     if (error.message === 'Image not found') {
