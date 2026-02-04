@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { faUser, faLock } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import Footer from '../components/Footer';
@@ -31,36 +30,14 @@ export default function Login() {
     api.get('/api/auth/me')
       .then((res) => {
         if (res.data) {
-          // User is already logged in, redirect to home
-          window.location.href = '/';
+          // Admin goes to /admin, others to home
+          window.location.href = res.data.isAdmin ? '/admin' : '/';
         }
       })
       .catch(() => {
         // Not logged in, stay on login page
       });
   }, []);
-
-  const [googleEnabled, setGoogleEnabled] = useState(false);
-
-  useEffect(() => {
-    // Check if Google OAuth is enabled
-    api.get('/api/auth/google/enabled')
-      .then((res) => {
-        setGoogleEnabled(res.data?.enabled || false);
-      })
-      .catch(() => {
-        setGoogleEnabled(false);
-      });
-  }, []);
-
-  const handleGoogleLogin = () => {
-    if (!googleEnabled) {
-      setError('Google OAuth n\'est pas configuré');
-      return;
-    }
-    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:3000');
-    window.location.href = `${API_URL}/api/auth/google`;
-  };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,8 +48,8 @@ export default function Login() {
       const response = await api.post('/api/auth/login', { username, password });
 
       if (response.data) {
-        // Login successful, reload page to update auth state
-        window.location.href = '/';
+        // Admin -> /admin, regular user -> home
+        window.location.href = response.data.isAdmin ? '/admin' : '/';
       }
     } catch (err: any) {
       setError(err.response?.data?.error || 'Erreur de connexion');
@@ -108,15 +85,15 @@ export default function Login() {
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Nom d'utilisateur</span>
+                  <span className="label-text">Email</span>
                 </label>
                 <label className="input-group">
                   <span>
                     <FontAwesomeIcon icon={faUser} />
                   </span>
                   <input
-                    type="text"
-                    placeholder="admin"
+                    type="email"
+                    placeholder="vous@exemple.com"
                     className="input input-bordered w-full"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -162,20 +139,6 @@ export default function Login() {
                 )}
               </button>
             </form>
-
-          {googleEnabled && (
-            <>
-              <div className="divider">Ou</div>
-
-              <button
-                className="btn btn-outline w-full"
-                onClick={handleGoogleLogin}
-              >
-                <FontAwesomeIcon icon={faGoogle} className="mr-2" />
-                Se connecter avec Google
-              </button>
-            </>
-          )}
 
             <p className="text-xs text-center text-base-content/50 mt-6 leading-relaxed px-2 break-words">
               En vous connectant, vous acceptez nos{' '}

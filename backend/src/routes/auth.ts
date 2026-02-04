@@ -7,30 +7,20 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Configure Local Strategy for username/password
+// Configure Local Strategy: email + password (admin: admin@local + ADMIN_PASSWORD, or regular user with passwordHash)
 passport.use(
   'local',
   new LocalStrategy(
     {
-      usernameField: 'username',
+      usernameField: 'username', // frontend sends email as "username"
       passwordField: 'password',
     },
     async (username: string, password: string, done) => {
       try {
-        // Only allow 'admin' username
-        if (username !== 'admin') {
-          return done(null, false, { message: 'Nom d\'utilisateur invalide' });
+        const user = await authService.authenticateByEmailPassword(username, password);
+        if (!user) {
+          return done(null, false, { message: 'Email ou mot de passe incorrect' });
         }
-
-        // Validate password
-        const isValid = await authService.validateAdminPassword(password);
-        if (!isValid) {
-          return done(null, false, { message: 'Mot de passe incorrect' });
-        }
-
-        // Get or create admin user
-        const user = await authService.findOrCreateAdminUser();
-        // Convert Prisma null to undefined for Passport compatibility
         const passportUser = {
           ...user,
           name: user.name ?? undefined,
@@ -174,6 +164,7 @@ router.get('/me', (req: Request, res: Response) => {
       email: user.email,
       name: user.name,
       picture: user.picture,
+      isAdmin: !!user.isAdmin,
     });
   } else {
     res.status(401).json({ error: 'Non authentifié' });

@@ -55,14 +55,16 @@ model User {
   id            String      @id @default(uuid())
   email         String      @unique @db.VarChar(255)
   name          String?     @db.VarChar(255)
+  passwordHash  String?     @db.VarChar(255)  // for admin-created users (email/password login)
   googleId      String?     @unique @db.VarChar(255)
   picture       String?     @db.VarChar(500)
+  isAdmin       Boolean     @default(false)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  
+
   inventories   Inventory[]
   locations     Location[]
-  
+
   @@index([email])
   @@index([googleId])
 }

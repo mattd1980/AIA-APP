@@ -10,6 +10,7 @@ import LocationDetail from './pages/LocationDetail';
 import RoomDetail from './pages/RoomDetail';
 import SafeDetail from './pages/SafeDetail';
 import Login from './pages/Login';
+import Admin from './pages/Admin';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import CookiePolicy from './pages/CookiePolicy';
@@ -21,6 +22,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/admin" element={<Admin />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/cookies" element={<CookiePolicy />} />

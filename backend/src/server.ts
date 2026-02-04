@@ -12,6 +12,7 @@ import safeRoutes from './routes/safes';
 import healthRoutes from './routes/health';
 import reportRoutes from './routes/reports';
 import authRoutes from './routes/auth';
+import adminRoutes from './routes/admin';
 import exportRoutes from './routes/export';
 
 dotenv.config();
@@ -80,6 +81,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // API Routes (must come before static files)
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/inventories', inventoryRoutes);
 app.use('/api/inventories', reportRoutes);
 app.use('/api/locations', locationRoutes);
