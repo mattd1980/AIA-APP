@@ -50,10 +50,15 @@ router.post('/users', async (req: Request, res: Response) => {
   }
 });
 
+function paramId(req: Request): string {
+  const id = req.params.id;
+  return Array.isArray(id) ? id[0] : id;
+}
+
 // Get one user
 router.get('/users/:id', async (req: Request, res: Response) => {
   try {
-    const user = await authService.getUserById(req.params.id);
+    const user = await authService.getUserById(paramId(req));
     if (!user) {
       return res.status(404).json({ error: 'Utilisateur non trouvé' });
     }
@@ -74,7 +79,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
 router.patch('/users/:id', async (req: Request, res: Response) => {
   try {
     const { name, password } = req.body;
-    const user = await authService.updateUser(req.params.id, {
+    const user = await authService.updateUser(paramId(req), {
       name: typeof name === 'string' ? name : undefined,
       password: typeof password === 'string' ? password : undefined,
     });
@@ -100,7 +105,7 @@ router.patch('/users/:id', async (req: Request, res: Response) => {
 // Delete user (cascade: locations, inventories, etc.)
 router.delete('/users/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const id = req.params.id;
+    const id = paramId(req);
     if (req.user?.id === id) {
       return res.status(400).json({ error: 'Vous ne pouvez pas supprimer votre propre compte' });
     }

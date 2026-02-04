@@ -151,7 +151,7 @@ export class AuthService {
     if (user.email === ADMIN_EMAIL && data.password !== undefined) {
       throw new Error('Admin password must be changed via ADMIN_PASSWORD env');
     }
-    const update: { name?: string; passwordHash?: string } = {};
+    const update: { name?: string | null; passwordHash?: string } = {};
     if (data.name !== undefined) update.name = data.name.trim() || null;
     if (data.password !== undefined && data.password) {
       update.passwordHash = await bcrypt.hash(data.password, SALT_ROUNDS);
