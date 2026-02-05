@@ -13,7 +13,14 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
-const BACKEND_URL = process.env.BACKEND_URL;
+
+// Backend URL must be a full URL (e.g. https://your-backend.up.railway.app).
+// If missing or invalid, http-proxy can throw "Cannot read properties of null (reading 'split')".
+const rawBackend = process.env.BACKEND_URL?.trim?.() || process.env.VITE_API_URL?.trim?.() || '';
+const BACKEND_URL =
+  rawBackend && (rawBackend.startsWith('http://') || rawBackend.startsWith('https://'))
+    ? rawBackend.replace(/\/$/, '') // strip trailing slash
+    : '';
 
 // Proxy API requests to backend to avoid CORS/cookie issues.
 // Browser calls same-origin /api/* -> this server forwards to BACKEND_URL.
@@ -24,9 +31,7 @@ if (BACKEND_URL) {
       target: BACKEND_URL,
       changeOrigin: true,
       xfwd: true,
-      // Preserve cookies for same-origin usage on the frontend domain
       cookieDomainRewrite: '',
-      // Railway is HTTPS; backend is HTTPS
       secure: true,
     })
   );
@@ -39,8 +44,10 @@ if (BACKEND_URL) {
       secure: true,
     })
   );
+  console.log(`   Proxy /api and /health -> ${BACKEND_URL}`);
 } else {
-  console.warn('⚠️  BACKEND_URL is not set. /api requests will 404.');
+  console.warn('⚠️  BACKEND_URL is not set or invalid (must be full URL, e.g. https://your-backend.up.railway.app).');
+  console.warn('   Set BACKEND_URL in your frontend service environment. /api and /health will 404.');
 }
 
 // Serve static files from the dist directory

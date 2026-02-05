@@ -1,17 +1,21 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock } from '@fortawesome/free-solid-svg-icons';
+import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import api from '../services/api';
 import Footer from '../components/Footer';
 
 type DbStatus = 'checking' | 'ok' | 'error';
 
 export default function Login() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState<DbStatus>('checking');
+  const [googleEnabled, setGoogleEnabled] = useState(false);
 
   useEffect(() => {
     const checkDb = async () => {
@@ -26,6 +30,20 @@ export default function Login() {
   }, []);
 
   useEffect(() => {
+    api.get('/api/auth/google/enabled')
+      .then((res) => setGoogleEnabled(res.data?.enabled === true))
+      .catch(() => setGoogleEnabled(false));
+  }, []);
+
+  useEffect(() => {
+    const authError = searchParams.get('error');
+    if (authError === 'auth_failed') {
+      setError('Connexion Google annulée ou échouée. Réessayez ou connectez-vous avec email/mot de passe.');
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
     // Check if user is already logged in
     api.get('/api/auth/me')
       .then((res) => {
@@ -38,6 +56,14 @@ export default function Login() {
         // Not logged in, stay on login page
       });
   }, []);
+
+  const backendAuthUrl = import.meta.env.PROD
+    ? `${window.location.origin}/api/auth/google`
+    : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/google`;
+
+  const handleGoogleLogin = () => {
+    window.location.href = backendAuthUrl;
+  };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,6 +165,20 @@ export default function Login() {
                 )}
               </button>
             </form>
+
+            {googleEnabled && (
+              <>
+                <div className="divider text-base-content/50 text-sm">ou</div>
+                <button
+                  type="button"
+                  className="btn btn-outline w-full gap-2 border-2"
+                  onClick={handleGoogleLogin}
+                >
+                  <FontAwesomeIcon icon={faGoogle} className="text-lg" />
+                  Se connecter avec Google
+                </button>
+              </>
+            )}
 
             <p className="text-xs text-center text-base-content/50 mt-6 leading-relaxed px-2 break-words">
               En vous connectant, vous acceptez nos{' '}

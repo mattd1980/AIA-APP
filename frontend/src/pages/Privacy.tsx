@@ -150,8 +150,14 @@ export default function Privacy() {
                   veuillez nous contacter à :
                 </p>
                 <p className="mb-4">
-                  <strong>Email :</strong> privacy@inventoryai.app<br />
-                  <strong>Adresse :</strong> [Votre adresse]<br />
+                  <strong>Email :</strong>{' '}
+                  <a href="mailto:info@heliacode.com" className="link link-primary">
+                    info@heliacode.com
+                  </a>
+                </p>
+                <p className="mb-4">
+                  Pour toute demande d'assistance, consultez notre page{' '}
+                  <Link to="/support" className="link link-primary">Support & Contact</Link>.
                 </p>
               </section>
 

@@ -40,10 +40,13 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ENABLED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 
 if (GOOGLE_ENABLED) {
-  const callbackURL = process.env.GOOGLE_CALLBACK_URL || 
-    (process.env.FRONTEND_URL 
-      ? `${process.env.FRONTEND_URL}/api/auth/google/callback`
-      : '/api/auth/google/callback');
+  // Callback URL must be the BACKEND URL (Google redirects the user here after consent).
+  const backendUrl = (process.env.BACKEND_URL || process.env.GOOGLE_CALLBACK_URL || '').replace(/\/$/, '');
+  const callbackURL = process.env.GOOGLE_CALLBACK_URL
+    ? process.env.GOOGLE_CALLBACK_URL.replace(/\/$/, '')
+    : backendUrl
+      ? `${backendUrl}/api/auth/google/callback`
+      : '/api/auth/google/callback';
 
   passport.use(
     'google',
@@ -129,13 +132,14 @@ if (GOOGLE_ENABLED) {
     passport.authenticate('google', { scope: ['profile', 'email'] })
   );
 
+  const frontendUrl = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
   router.get(
     '/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login?error=auth_failed' }),
+    passport.authenticate('google', {
+      failureRedirect: frontendUrl ? `${frontendUrl}/login?error=auth_failed` : '/login?error=auth_failed',
+    }),
     (req: Request, res: Response) => {
-      // Successful authentication, redirect to home
-      // Use absolute URL if FRONTEND_URL is set, otherwise relative
-      const redirectUrl = process.env.FRONTEND_URL || '/';
+      const redirectUrl = frontendUrl || '/';
       res.redirect(redirectUrl);
     }
   );

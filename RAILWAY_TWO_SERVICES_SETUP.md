@@ -1,6 +1,23 @@
 # Railway Two-Service Setup Guide
 
-This guide explains how to deploy the frontend and backend as separate services in the same Railway project.
+## Why does the "backend" URL show the full app (login, etc.)?
+
+If you have **one** Railway service (e.g. `aia-app-back-production`) and the repo is deployed from the **root** (no Root Directory, or root directory = repo root), then that service is not “backend-only” — it runs the **combined app**:
+
+1. **Start command** (from root `railway.toml`) is `cd backend && npm run railway`.
+2. **`railway-start.js`** (backend startup script) builds the frontend from `../frontend`, copies it into `backend/public`, runs migrations, then starts the Express server.
+3. **Express** (in `backend/src/server.ts`) serves:
+   - **API**: `/api/*` and `/health`
+   - **Static frontend**: files from `backend/public` (the built React app)
+   - **SPA fallback**: any other path (e.g. `/login`) → `index.html`
+
+So **https://aia-app-back-production.up.railway.app** is the URL of your **entire app**. The name “back” is just the service name; that one service serves both API and UI. Login, database, and all features work from that URL because the frontend and API are same-origin (no CORS, cookies work). This is the **single-service (combined) deployment**.
+
+If you add a **second** service for the frontend (Root Directory = `frontend`), you get two URLs; then you’d use the frontend URL for users and point its proxy at the backend URL. The rest of this guide describes that **two-service** setup.
+
+---
+
+This guide explains how to deploy the frontend and backend as **separate** services in the same Railway project.
 
 ## Overview
 
@@ -78,10 +95,16 @@ Both services will build and deploy independently.
 
 ## Troubleshooting
 
+### Red database LED / "Cannot connect to API" / Proxy "split" error
+- **Frontend service** must have **`BACKEND_URL`** set to the **full backend URL** (e.g. `https://your-backend.up.railway.app`).
+- Use `https://` (or `http://`); do not omit the protocol or the proxy will crash with `Cannot read properties of null (reading 'split')`.
+- No trailing slash: use `https://xxx.up.railway.app` not `https://xxx.up.railway.app/`.
+- In Railway: Frontend service → Variables → add or edit `BACKEND_URL` with the backend’s public URL (from Backend service → Settings → Domains).
+
 ### Frontend shows "Cannot connect to API"
-- Check `VITE_API_URL` in frontend service variables
-- Make sure it points to your backend service URL
-- Check CORS settings in backend
+- Check `BACKEND_URL` (production proxy) and/or `VITE_API_URL` (dev) in frontend service variables.
+- Make sure the URL points to your backend service and includes `https://`.
+- Check CORS settings in backend if you are not using the proxy.
 
 ### Both services on same domain but routing doesn't work
 - Railway may need explicit routing configuration

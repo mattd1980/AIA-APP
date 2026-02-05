@@ -8,13 +8,17 @@ export default function Footer() {
         <p className="text-sm sm:text-base">Application d'inventaire assistée par intelligence artificielle</p>
       </div>
       <div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center flex-wrap justify-center">
           <Link to="/privacy" className="link link-hover text-sm">
             Confidentialité
           </Link>
           <span className="hidden sm:inline">•</span>
           <Link to="/terms" className="link link-hover text-sm">
             Conditions d'utilisation
+          </Link>
+          <span className="hidden sm:inline">•</span>
+          <Link to="/support" className="link link-hover text-sm">
+            Support
           </Link>
           <span className="hidden sm:inline">•</span>
           <Link to="/cookies" className="link link-hover text-sm">

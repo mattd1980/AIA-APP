@@ -170,8 +170,14 @@ export default function Terms() {
                   veuillez nous contacter à :
                 </p>
                 <p className="mb-4">
-                  <strong>Email :</strong> legal@inventoryai.app<br />
-                  <strong>Adresse :</strong> [Votre adresse]<br />
+                  <strong>Email :</strong>{' '}
+                  <a href="mailto:info@heliacode.com" className="link link-primary">
+                    info@heliacode.com
+                  </a>
+                </p>
+                <p className="mb-4">
+                  Vous pouvez également consulter notre page{' '}
+                  <Link to="/support" className="link link-primary">Support & Contact</Link> pour toute demande d'assistance.
                 </p>
               </section>
 
