@@ -14,7 +14,7 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Backend URL must be a full URL (e.g. https://your-backend.up.railway.app).
+// Backend URL must be a full URL (e.g. https://ia.heliacode.com).
 // If missing or invalid, http-proxy can throw "Cannot read properties of null (reading 'split')".
 const rawBackend = process.env.BACKEND_URL?.trim?.() || process.env.VITE_API_URL?.trim?.() || '';
 const BACKEND_URL =
@@ -46,7 +46,7 @@ if (BACKEND_URL) {
   );
   console.log(`   Proxy /api and /health -> ${BACKEND_URL}`);
 } else {
-  console.warn('⚠️  BACKEND_URL is not set or invalid (must be full URL, e.g. https://your-backend.up.railway.app).');
+  console.warn('⚠️  BACKEND_URL is not set or invalid (must be full URL, e.g. https://ia.heliacode.com).');
   console.warn('   Set BACKEND_URL in your frontend service environment. /api and /health will 404.');
 }
 

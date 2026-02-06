@@ -48,7 +48,7 @@ app.use(passport.session());
 
 // Middleware
 // FRONTEND_URL can be:
-// - exact origin: https://your-frontend.up.railway.app
+// - exact origin: https://ia.heliacode.com
 // - "*" to allow any origin (reflected) (useful during setup)
 // - comma-separated list of origins
 const devOrigins = ['http://localhost:5173', 'http://localhost:4173'];

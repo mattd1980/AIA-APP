@@ -418,7 +418,7 @@ RAILWAY_ENVIRONMENT=production
 
 ### Frontend (.env)
 ```env
-VITE_API_URL=https://your-backend.railway.app
+VITE_API_URL=https://ia.heliacode.com
 ```
 
 ---

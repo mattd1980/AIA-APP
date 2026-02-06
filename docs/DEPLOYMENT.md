@@ -70,7 +70,7 @@ SESSION_SECRET=your-super-secret-session-key-change-in-production
 ADMIN_PASSWORD=your-secure-admin-password
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=https://your-backend.railway.app/api/auth/google/callback
+GOOGLE_CALLBACK_URL=https://ia.heliacode.com/api/auth/google/callback
 
 # DataForSEO (optionnel)
 DATAFORSEO_API_KEY=...
@@ -116,7 +116,7 @@ Railway détectera automatiquement un projet Node.js. Si besoin, créer un `rail
 2. Importer le projet frontend depuis GitHub
 3. Configurer les variables d'environnement:
    ```env
-   VITE_API_URL=https://your-backend.railway.app
+   VITE_API_URL=https://ia.heliacode.com
    ```
 4. Déployer
 
@@ -129,7 +129,7 @@ Railway détectera automatiquement un projet Node.js. Si besoin, créer un `rail
    - Publish directory: `dist`
 4. Variables d'environnement:
    ```env
-   VITE_API_URL=https://your-backend.railway.app
+   VITE_API_URL=https://ia.heliacode.com
    ```
 
 ---

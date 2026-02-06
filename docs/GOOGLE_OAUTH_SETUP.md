@@ -29,12 +29,12 @@ Ce guide explique comment activer la **connexion et la création de compte avec 
    - **Name** : ex. « Inventory AI Web ».  
    - **Authorized JavaScript origins** (optionnel mais recommandé) :  
      - En local : `http://localhost:5173` (frontend), `http://localhost:3000` (backend si utilisé dans le navigateur).  
-     - En production : l’URL de votre frontend (ex. `https://votre-app.up.railway.app`).  
+     - En production : l’URL de votre application (ex. `https://ia.heliacode.com`).  
    - **Authorized redirect URIs** (obligatoire) :  
      - **En local** : `http://localhost:3000/api/auth/google/callback`  
        (remplacez `3000` si votre backend tourne sur un autre port).  
-     - **En production** : `https://VOTRE-BACKEND-URL/api/auth/google/callback`  
-       Exemple : `https://votre-backend.up.railway.app/api/auth/google/callback`.  
+     - **En production** : `https://VOTRE-DOMAINE/api/auth/google/callback`  
+       Exemple : `https://ia.heliacode.com/api/auth/google/callback`.  
    - **Create** → vous obtenez un **Client ID** et un **Client secret**.
 
 7. **Récupérer Client ID et Client secret**  
@@ -50,12 +50,12 @@ Dans le fichier `.env` du backend (ou dans les variables d’environnement de vo
 GOOGLE_CLIENT_ID=votre-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=votre-client-secret
 
-# URL de votre backend (obligatoire en production si différent du frontend)
+# URL de votre application en production (obligatoire pour le callback Google)
 # Google redirigera l’utilisateur vers : BACKEND_URL/api/auth/google/callback
-BACKEND_URL=https://votre-backend.up.railway.app
+BACKEND_URL=https://ia.heliacode.com
 
-# URL du frontend (pour la redirection après connexion et CORS)
-FRONTEND_URL=https://votre-frontend.up.railway.app
+# URL du frontend (pour la redirection après connexion et CORS ; même valeur si même origine)
+FRONTEND_URL=https://ia.heliacode.com
 ```
 
 En **développement local** :

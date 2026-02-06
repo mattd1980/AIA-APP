@@ -72,14 +72,14 @@ Railway will automatically:
 
 1. In Railway dashboard, go to your service
 2. Click on "Settings" → "Generate Domain"
-3. Copy the generated URL (e.g., `https://aia-backend-production.up.railway.app`)
+3. Copy the generated URL (e.g., `https://ia.heliacode.com`)
 
 ### 6. Update Frontend Environment
 
 After getting your Railway backend URL:
 
 1. Deploy frontend to Vercel/Netlify
-2. Set environment variable: `VITE_API_URL=https://your-backend.railway.app`
+2. Set environment variable: `VITE_API_URL=https://ia.heliacode.com`
 3. Redeploy frontend
 
 ### 7. Update CORS in Backend
@@ -88,8 +88,8 @@ Update `FRONTEND_URL` in Railway variables with your actual frontend URL.
 
 ## Verification
 
-1. Check health endpoint: `https://your-backend.railway.app/health`
-2. Check database health: `https://your-backend.railway.app/health/db`
+1. Check health endpoint: `https://ia.heliacode.com/health`
+2. Check database health: `https://ia.heliacode.com/health/db`
 3. View logs in Railway dashboard
 
 ## Troubleshooting

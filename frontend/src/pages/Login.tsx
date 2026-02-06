@@ -109,43 +109,43 @@ export default function Login() {
             </div>
 
             {/* Username/Password Form */}
-            <form onSubmit={handlePasswordLogin} className="space-y-5">
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Email</span>
+                <label className="label py-1">
+                  <span className="label-text">Email</span>
                 </label>
-                <label className="input-group input-group-lg">
-                  <span className="bg-base-200 border border-base-content/20 border-r-0 rounded-l-xl px-4 text-base-content/70 min-w-[2.75rem] flex items-center justify-center">
-                    <FontAwesomeIcon icon={faUser} />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 pointer-events-none">
+                    <FontAwesomeIcon icon={faUser} className="text-sm" />
                   </span>
                   <input
                     type="email"
                     placeholder="vous@exemple.com"
-                    className="input input-bordered input-lg w-full border-2 border-base-content/25 bg-base-200/60 placeholder:opacity-60 rounded-r-xl focus:outline-none focus:border-primary"
+                    className="input input-bordered w-full pl-9 py-2.5 rounded-md border border-base-content/20 bg-base-100"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
                   />
-                </label>
+                </div>
               </div>
 
               <div className="form-control">
-                <label className="label">
-                  <span className="label-text font-medium">Mot de passe</span>
+                <label className="label py-1">
+                  <span className="label-text">Mot de passe</span>
                 </label>
-                <label className="input-group input-group-lg">
-                  <span className="bg-base-200 border border-base-content/20 border-r-0 rounded-l-xl px-4 text-base-content/70 min-w-[2.75rem] flex items-center justify-center">
-                    <FontAwesomeIcon icon={faLock} />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 pointer-events-none">
+                    <FontAwesomeIcon icon={faLock} className="text-sm" />
                   </span>
                   <input
                     type="password"
                     placeholder="Mot de passe"
-                    className="input input-bordered input-lg w-full border-2 border-base-content/25 bg-base-200/60 placeholder:opacity-60 rounded-r-xl focus:outline-none focus:border-primary"
+                    className="input input-bordered w-full pl-9 py-2.5 rounded-md border border-base-content/20 bg-base-100"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                </label>
+                </div>
               </div>
 
               {error && (

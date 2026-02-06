@@ -2,7 +2,7 @@
 
 ## Base URL
 ```
-Production: https://your-app.railway.app
+Production: https://ia.heliacode.com
 Development: http://localhost:3000
 ```
 

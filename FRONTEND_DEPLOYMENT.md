@@ -22,7 +22,7 @@ Before deploying, add the environment variable:
 1. In Vercel project settings, go to "Environment Variables"
 2. Add a new variable:
    - **Name:** `VITE_API_URL`
-   - **Value:** Your Railway backend URL (e.g., `https://your-backend.up.railway.app`)
+   - **Value:** Your Railway backend URL (e.g., `https://ia.heliacode.com`)
    - **Environment:** Production, Preview, Development (select all)
 
 ### Step 3: Deploy
@@ -72,7 +72,7 @@ Same as Vercel - update `FRONTEND_URL` in Railway with your Netlify URL.
 
 ## Verify Everything Works
 
-1. **Test Backend:** Visit `https://your-backend.railway.app/health`
+1. **Test Backend:** Visit `https://ia.heliacode.com/health`
    - Should return: `{"status":"ok",...}`
 
 2. **Test Frontend:** Visit your Vercel/Netlify URL
@@ -87,7 +87,7 @@ Same as Vercel - update `FRONTEND_URL` in Railway with your Netlify URL.
 ### Frontend can't connect to backend
 
 - Verify `VITE_API_URL` is set correctly in Vercel/Netlify
-- Make sure there's no trailing slash: `https://backend.railway.app` (not `https://backend.railway.app/`)
+- Make sure there's no trailing slash: `https://ia.heliacode.com` (not `https://ia.heliacode.com/`)
 - Check browser console for errors
 
 ### CORS errors
