@@ -1,9 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUpload, faImage, faSpinner, faCamera } from '@fortawesome/free-solid-svg-icons';
-import { inventoryApi } from '../services/api';
+import { faUpload, faImage, faCamera } from '@fortawesome/free-solid-svg-icons';
+import { inventoryApi } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function Upload() {
   const [files, setFiles] = useState<File[]>([]);
@@ -194,34 +199,32 @@ export default function Upload() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Nouvel Inventaire</h1>
 
-      <div className="card bg-base-100 shadow-md mb-4">
-        <div className="card-body">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Nom de l'inventaire (optionnel)</span>
-            </label>
-            <input
+      <Card className="mb-4 shadow-md">
+        <CardContent className="p-6">
+          <div className="space-y-2">
+            <Label>Nom de l'inventaire (optionnel)</Label>
+            <Input
               type="text"
-              className="input input-bordered w-full"
+              className="w-full"
               placeholder="Ex: Maison principale, Salon, Chambre..."
               value={inventoryName}
               onChange={(e) => setInventoryName(e.target.value)}
             />
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Boutons d'action rapide pour mobile — caméra et galerie correctement séparés pour iOS/Android */}
       {isMobile && (
-        <div className="flex gap-4 mb-6">
-          <button
+        <div className="mb-6 flex gap-4">
+          <Button
             onClick={openCamera}
-            className="btn btn-primary flex-1"
+            className="flex-1"
             disabled={isCameraOpen}
           >
             <FontAwesomeIcon icon={faCamera} className="mr-2" />
             Prendre une photo
-          </button>
+          </Button>
           {/* Input caméra : capture="environment" pour ouvrir la caméra arrière (fallback si getUserMedia échoue) */}
           <input
             ref={cameraInputRef}
@@ -242,25 +245,28 @@ export default function Upload() {
             multiple
             aria-hidden
           />
-          <button
+          <Button
             onClick={() => galleryInputRef.current?.click()}
-            className="btn btn-secondary flex-1"
+            variant="secondary"
+            className="flex-1"
           >
             <FontAwesomeIcon icon={faImage} className="mr-2" />
             Galerie
-          </button>
+          </Button>
         </div>
       )}
 
       {/* Vue caméra */}
       {isCameraOpen && (
-        <div className="card bg-base-100 shadow-xl mb-6">
-          <div className="card-body">
-            <h2 className="card-title mb-4">
+        <Card className="mb-6 shadow-xl">
+          <CardHeader>
+            <CardTitle className="mb-4 flex items-center">
               <FontAwesomeIcon icon={faCamera} className="mr-2" />
               Caméra
-            </h2>
-            <div className="relative bg-black rounded-lg overflow-hidden">
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="relative overflow-hidden rounded-lg bg-black">
               <video
                 ref={videoRef}
                 autoPlay
@@ -270,109 +276,110 @@ export default function Upload() {
               />
               <canvas ref={canvasRef} className="hidden" />
             </div>
-            <div className="flex gap-4 justify-end mt-4">
-              <button onClick={closeCamera} className="btn btn-ghost">
+            <div className="mt-4 flex justify-end gap-4">
+              <Button variant="ghost" onClick={closeCamera}>
                 Annuler
-              </button>
-              <button onClick={capturePhoto} className="btn btn-primary">
+              </Button>
+              <Button onClick={capturePhoto}>
                 <FontAwesomeIcon icon={faCamera} className="mr-2" />
                 Prendre la photo
-              </button>
+              </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Zone de drop/upload */}
-      <div className="card bg-base-200 border-2 border-dashed border-primary/30 hover:border-primary/50 transition-colors mb-6">
-        <div
-          {...getRootProps()}
-          className="card-body items-center justify-center min-h-[300px] cursor-pointer"
-          onClick={(e) => {
-            // Ensure clicks on the dropzone area trigger file picker
-            const target = e.target as HTMLElement;
-            if (target.tagName !== 'BUTTON' && target.closest('button') === null) {
-              e.stopPropagation();
-              open();
-            }
-          }}
-        >
-          <input {...getInputProps()} />
-          <FontAwesomeIcon
-            icon={faUpload}
-            className="text-6xl text-primary mb-4"
-          />
-          <h3 className="card-title text-xl mb-2">
+      <div
+        {...getRootProps()}
+        className="mb-6 flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/30 bg-muted/50 transition-colors hover:border-primary/50"
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.tagName !== 'BUTTON' && target.closest('button') === null) {
+            e.stopPropagation();
+            open();
+          }
+        }}
+      >
+        <input {...getInputProps()} />
+        <div className="flex flex-col items-center justify-center p-6">
+          <FontAwesomeIcon icon={faUpload} className="mb-4 text-6xl text-primary" />
+          <h3 className="mb-2 text-xl font-semibold">
             {isDragActive ? 'Déposez les images ici' : 'Glissez vos images ici'}
           </h3>
-          <p className="text-base-content/70 text-center mb-4">
+          <p className="mb-4 text-center text-muted-foreground">
             {isMobile
               ? 'Ou utilisez les boutons ci-dessus pour la caméra'
               : 'Ou cliquez pour sélectionner des fichiers'}
           </p>
-          <p className="text-xs text-base-content/50 mt-2">
+          <p className="mt-2 text-xs text-muted-foreground">
             Formats supportés: JPG, PNG, WEBP (max 10MB)
           </p>
-          <button
+          <Button
             type="button"
+            size="sm"
+            className="mt-4"
             onClick={(e) => {
               e.stopPropagation();
               open();
             }}
-            className="btn btn-primary btn-sm mt-4"
           >
             <FontAwesomeIcon icon={faImage} className="mr-2" />
             Sélectionner des fichiers
-          </button>
+          </Button>
         </div>
       </div>
 
       {files.length > 0 && (
-        <div className="card bg-base-100 shadow-md mb-6">
-          <div className="card-body">
-            <h2 className="card-title mb-4">
+        <Card className="mb-6 shadow-md">
+          <CardHeader>
+            <CardTitle className="mb-4 flex items-center">
               <FontAwesomeIcon icon={faImage} className="mr-2" />
               Images sélectionnées ({files.length})
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-3">
               {files.map((file, index) => {
                 const previewUrl = previewUrls.get(index);
                 return (
-                  <div key={index} className="relative group">
+                  <div key={index} className="group relative">
                     {previewUrl && (
                       <img
                         src={previewUrl}
                         alt={file.name}
-                        className="w-full h-32 object-cover rounded-lg"
+                        className="h-32 w-full rounded-lg object-cover"
                       />
                     )}
-                    <button
-                      className="absolute top-2 right-2 btn btn-sm btn-error btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="absolute right-2 top-2 size-8 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => removeFile(index)}
                     >
                       ×
-                    </button>
-                    <p className="text-xs text-center mt-1 truncate">{file.name}</p>
+                    </Button>
+                    <p className="mt-1 truncate text-center text-xs">{file.name}</p>
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      <div className="flex gap-4 justify-end">
-        <a href="/" className="btn btn-ghost">
-          Annuler
-        </a>
-        <button
-          className="btn btn-primary"
+      <div className="flex justify-end gap-4">
+        <Button variant="ghost" asChild>
+          <a href="/">Annuler</a>
+        </Button>
+        <Button
           onClick={handleSubmit}
           disabled={uploading || files.length === 0}
         >
           {uploading ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="animate-spin mr-2" />
+              <Spinner className="mr-2 size-4" data-icon="inline-start" />
               Traitement...
             </>
           ) : (
@@ -381,7 +388,7 @@ export default function Upload() {
               Créer l'inventaire
             </>
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

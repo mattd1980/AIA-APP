@@ -1,20 +1,24 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen bg-base-200 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <Link to="/" className="btn btn-ghost mb-6">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          Retour à l'accueil
+    <div className="min-h-screen bg-muted/30 py-8 px-4">
+      <div className="mx-auto max-w-4xl">
+        <Link to="/">
+          <Button variant="ghost" className="mb-6">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            Retour à l'accueil
+          </Button>
         </Link>
 
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
+        <Card className="shadow-xl">
+          <CardContent className="p-6">
             <h1 className="text-4xl font-bold mb-6">Politique de Confidentialité</h1>
-            <p className="text-sm text-base-content/70 mb-8">
+            <p className="text-sm text-muted-foreground mb-8">
               Dernière mise à jour : {new Date().toLocaleDateString('fr-CA')}
             </p>
 
@@ -151,13 +155,13 @@ export default function Privacy() {
                 </p>
                 <p className="mb-4">
                   <strong>Email :</strong>{' '}
-                  <a href="mailto:info@heliacode.com" className="link link-primary">
+                  <a href="mailto:info@heliacode.com" className="text-primary underline-offset-4 hover:underline">
                     info@heliacode.com
                   </a>
                 </p>
                 <p className="mb-4">
                   Pour toute demande d'assistance, consultez notre page{' '}
-                  <Link to="/support" className="link link-primary">Support & Contact</Link>.
+                  <Link to="/support" className="text-primary underline-offset-4 hover:underline">Support & Contact</Link>.
                 </p>
               </section>
 
@@ -170,8 +174,8 @@ export default function Privacy() {
                 </p>
               </section>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

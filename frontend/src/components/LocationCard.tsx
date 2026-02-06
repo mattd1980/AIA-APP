@@ -1,6 +1,8 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faHome, faDoorOpen, faVault, faImage } from '@fortawesome/free-solid-svg-icons';
-import type { Location } from '../services/api';
+import type { Location } from '@/services/api';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface LocationCardProps {
   location: Location;
@@ -15,18 +17,18 @@ export default function LocationCard({ location, onDelete }: LocationCardProps) 
     (location.safes?.reduce((s, sf) => s + (sf._count?.images ?? 0), 0) ?? 0);
 
   return (
-    <div className="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
-      <div className="card-body">
-        <h2 className="card-title text-xl">
-          <FontAwesomeIcon icon={faHome} className="text-primary mr-2" />
+    <Card className="overflow-hidden transition-shadow hover:shadow-xl">
+      <CardContent className="p-6">
+        <h2 className="mb-2 flex items-center text-xl font-semibold leading-none tracking-tight">
+          <FontAwesomeIcon icon={faHome} className="mr-2 text-primary" />
           {location.name}
         </h2>
         {location.address && (
-          <p className="text-sm text-base-content/70 truncate" title={location.address}>
+          <p className="truncate text-sm text-muted-foreground" title={location.address}>
             {location.address}
           </p>
         )}
-        <div className="flex items-center gap-4 mt-2 text-sm text-base-content/70">
+        <div className="mt-2 flex items-center gap-4 text-sm text-muted-foreground">
           <span>
             <FontAwesomeIcon icon={faDoorOpen} className="mr-1" />
             {roomCount} pièce{roomCount !== 1 ? 's' : ''}
@@ -40,23 +42,26 @@ export default function LocationCard({ location, onDelete }: LocationCardProps) 
             {imageCount} photo{imageCount !== 1 ? 's' : ''}
           </span>
         </div>
-        <div className="card-actions justify-end mt-4">
-          <a href={`/location/${location.id}`} className="btn btn-sm btn-primary">
-            <FontAwesomeIcon icon={faDoorOpen} className="mr-2" />
-            Voir
+        <div className="mt-4 flex justify-end gap-2">
+          <a href={`/location/${location.id}`}>
+            <Button size="sm">
+              <FontAwesomeIcon icon={faDoorOpen} className="mr-2" />
+              Voir
+            </Button>
           </a>
           {onDelete && (
-            <button
+            <Button
               type="button"
-              className="btn btn-sm btn-error"
+              size="sm"
+              variant="destructive"
               onClick={() => onDelete(location.id)}
               title="Supprimer le lieu"
             >
               Supprimer
-            </button>
+            </Button>
           )}
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

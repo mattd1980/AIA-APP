@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileCsv, faPlus } from '@fortawesome/free-solid-svg-icons';
-import { locationsApi } from '../services/api';
-import type { Location } from '../services/api';
-import LocationCard from '../components/LocationCard';
+import { locationsApi } from '@/services/api';
+import type { Location } from '@/services/api';
+import LocationCard from '@/components/LocationCard';
+import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
@@ -62,7 +64,7 @@ export default function Home() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center">
-          <span className="loading loading-spinner loading-lg" />
+          <Spinner className="size-8" />
         </div>
       </div>
     );
@@ -70,41 +72,43 @@ export default function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Mes lieux</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <a href="/location/new" className="btn btn-primary">
-            <FontAwesomeIcon icon={faPlus} className="mr-2" />
-            Nouveau lieu
+          <a href="/location/new">
+            <Button>
+              <FontAwesomeIcon icon={faPlus} className="mr-2" />
+              Nouveau lieu
+            </Button>
           </a>
           {locations.length > 0 && (
-            <button
+            <Button
               type="button"
-              className="btn btn-outline btn-primary"
+              variant="outline"
               onClick={handleExportCsv}
               disabled={exporting}
               title="Exporter l'inventaire en CSV pour votre assureur"
             >
               {exporting ? (
-                <span className="loading loading-spinner loading-sm" />
+                <Spinner className="mr-2 size-4" data-icon="inline-start" />
               ) : (
                 <FontAwesomeIcon icon={faFileCsv} className="mr-2" />
               )}
               Exporter en CSV (assureur)
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {locations.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-base-content/70 mb-4">Aucun lieu pour le moment</p>
-          <a href="/location/new" className="btn btn-primary">
-            Ajouter une adresse ou un domicile
+        <div className="py-12 text-center">
+          <p className="mb-4 text-muted-foreground">Aucun lieu pour le moment</p>
+          <a href="/location/new">
+            <Button>Ajouter une adresse ou un domicile</Button>
           </a>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {locations.map((location) => (
             <LocationCard key={location.id} location={location} onDelete={handleDelete} />
           ))}

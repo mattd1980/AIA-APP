@@ -12,9 +12,15 @@ import {
   faCheck,
   faTimes,
 } from '@fortawesome/free-solid-svg-icons';
-import { locationsApi, roomsApi, safesApi } from '../services/api';
-import type { Location } from '../services/api';
-import { SUGGESTED_ROOMS, SUGGESTED_SAFES } from '../constants/suggestions';
+import { locationsApi, roomsApi, safesApi } from '@/services/api';
+import type { Location } from '@/services/api';
+import { SUGGESTED_ROOMS, SUGGESTED_SAFES } from '@/constants/suggestions';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function LocationDetail() {
   const { id } = useParams<{ id: string }>();
@@ -253,7 +259,7 @@ export default function LocationDetail() {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center">
-          <span className="loading loading-spinner loading-lg" />
+          <Spinner className="size-8" />
         </div>
       </div>
     );
@@ -262,11 +268,13 @@ export default function LocationDetail() {
   if (!location) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="alert alert-error">Lieu introuvable</div>
-        <button type="button" className="btn btn-ghost mt-4" onClick={() => navigate('/')}>
+        <Alert variant="destructive">
+          <AlertDescription>Lieu introuvable</AlertDescription>
+        </Alert>
+        <Button type="button" variant="ghost" className="mt-4" onClick={() => navigate('/')}>
           <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
           Retour
-        </button>
+        </Button>
       </div>
     );
   }
@@ -276,46 +284,44 @@ export default function LocationDetail() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <button
-        type="button"
-        className="btn btn-ghost mb-4"
-        onClick={() => navigate('/')}
-      >
+      <Button type="button" variant="ghost" className="mb-4" onClick={() => navigate('/')}>
         <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
         Retour
-      </button>
+      </Button>
 
-      <div className="card bg-base-100 shadow-lg mb-6">
-        <div className="card-body">
+      <Card className="mb-6 shadow-lg">
+        <CardContent className="p-6">
           <h1 className="text-3xl font-bold">{location.name}</h1>
           {location.address && (
-            <p className="text-base-content/70">{location.address}</p>
+            <p className="text-muted-foreground">{location.address}</p>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {successMessage && (
-        <div className="alert alert-success mb-4">
-          <span>{successMessage}</span>
-        </div>
+        <Alert className="mb-4 border-green-500/50 bg-green-50 text-green-900 dark:border-green-500/50 dark:bg-green-950 dark:text-green-100">
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
       )}
       {error && (
-        <div className="alert alert-error mb-4">
-          <span>{error}</span>
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {/* Pièces */}
-      <div className="card bg-base-100 shadow-md mb-6">
-        <div className="card-body">
-          <h2 className="card-title text-xl mb-4">
-            <FontAwesomeIcon icon={faDoorOpen} className="text-primary mr-2" />
+      <Card className="mb-6 shadow-md">
+        <CardHeader>
+          <CardTitle className="mb-4 flex items-center text-xl">
+            <FontAwesomeIcon icon={faDoorOpen} className="mr-2 text-primary" />
             Pièces
-          </h2>
-          <div className="mb-4">
-            <label className="label text-sm text-base-content/70">Suggestions de pièces (assurance)</label>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2">
+            <Label className="text-sm text-muted-foreground">Suggestions de pièces (assurance)</Label>
             <select
-              className="select select-bordered w-full max-w-xs"
+              className="max-w-xs"
               value=""
               onChange={(e) => {
                 const v = e.target.value;
@@ -332,38 +338,38 @@ export default function LocationDetail() {
               ))}
             </select>
           </div>
-          <form onSubmit={handleAddRoom} className="flex gap-2 mb-4">
-            <input
+          <form onSubmit={handleAddRoom} className="mb-4 flex gap-2">
+            <Input
               type="text"
-              className="input input-bordered flex-1"
+              className="flex-1"
               placeholder="Ou saisir un nom personnalisé (ex : Salon, Cuisine)"
               value={newRoomName}
               onChange={(e) => setNewRoomName(e.target.value)}
             />
-            <button type="submit" className="btn btn-primary" disabled={addingRoom || !newRoomName.trim()}>
+            <Button type="submit" disabled={addingRoom || !newRoomName.trim()}>
               <FontAwesomeIcon icon={faPlus} className="mr-2" />
               Ajouter
-            </button>
+            </Button>
           </form>
           {rooms.length === 0 ? (
-            <p className="text-base-content/60 text-sm">Aucune pièce. Ajoutez-en une ci-dessus.</p>
+            <p className="text-sm text-muted-foreground">Aucune pièce. Ajoutez-en une ci-dessus.</p>
           ) : (
             <ul className="space-y-2">
               {rooms.map((room) => (
                 <li
                   key={room.id}
                   ref={room.id === lastAddedRoomId ? addedRoomRef : undefined}
-                  className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                  className={`flex items-center justify-between rounded-lg p-3 transition-all duration-300 ${
                     room.id === lastAddedRoomId
-                      ? 'bg-success/25 ring-2 ring-success shadow-md'
-                      : 'bg-base-200'
+                      ? 'ring-2 ring-green-500 bg-green-500/15 shadow-md dark:bg-green-500/20'
+                      : 'bg-muted/50'
                   }`}
                 >
                   {editingRoomId === room.id ? (
-                    <div className="flex items-center gap-2 flex-1 mr-2">
-                      <input
+                    <div className="mr-2 flex flex-1 items-center gap-2">
+                      <Input
                         type="text"
-                        className="input input-bordered input-sm flex-1"
+                        className="h-9 flex-1"
                         value={editingRoomName}
                         onChange={(e) => setEditingRoomName(e.target.value)}
                         onKeyDown={(e) => {
@@ -372,58 +378,64 @@ export default function LocationDetail() {
                         }}
                         autoFocus
                       />
-                      <button
+                      <Button
                         type="button"
-                        className="btn btn-sm btn-primary"
+                        size="sm"
                         onClick={handleSaveRoomName}
                         disabled={savingRoom || !editingRoomName.trim()}
                         title="Enregistrer"
                       >
                         <FontAwesomeIcon icon={faCheck} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        size="sm"
+                        variant="ghost"
                         onClick={cancelEditRoom}
                         disabled={savingRoom}
                         title="Annuler"
                       >
                         <FontAwesomeIcon icon={faTimes} />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <>
                       <div className="flex items-center gap-3">
                         <a
                           href={`/room/${room.id}`}
-                          className="font-medium hover:underline flex items-center gap-2"
+                          className="flex items-center gap-2 font-medium hover:underline"
                         >
                           {room.name}
-                          <span className="text-sm text-base-content/60">
+                          <span className="text-sm text-muted-foreground">
                             ({room._count?.images ?? 0} photo{(room._count?.images ?? 0) !== 1 ? 's' : ''})
                           </span>
                         </a>
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           type="button"
-                          className="btn btn-sm btn-ghost"
+                          size="sm"
+                          variant="ghost"
                           onClick={() => startEditRoom(room)}
                           title="Modifier le nom"
                         >
                           <FontAwesomeIcon icon={faPen} />
-                        </button>
-                        <a href={`/room/${room.id}`} className="btn btn-sm btn-ghost" title="Voir et gérer les photos">
-                          <FontAwesomeIcon icon={faImage} />
-                        </a>
-                        <button
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={`/room/${room.id}`} title="Voir et gérer les photos">
+                            <FontAwesomeIcon icon={faImage} />
+                          </a>
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn btn-sm btn-error btn-ghost"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => handleDeleteRoom(room.id)}
                           title="Supprimer la pièce"
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        </Button>
                       </div>
                     </>
                   )}
@@ -431,20 +443,22 @@ export default function LocationDetail() {
               ))}
             </ul>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Coffres */}
-      <div className="card bg-base-100 shadow-md mb-6">
-        <div className="card-body">
-          <h2 className="card-title text-xl mb-4">
-            <FontAwesomeIcon icon={faVault} className="text-secondary mr-2" />
+      <Card className="mb-6 shadow-md">
+        <CardHeader>
+          <CardTitle className="mb-4 flex items-center text-xl">
+            <FontAwesomeIcon icon={faVault} className="mr-2 text-secondary" />
             Coffres
-          </h2>
-          <div className="mb-4">
-            <label className="label text-sm text-base-content/70">Suggestions de coffres</label>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 space-y-2">
+            <Label className="text-sm text-muted-foreground">Suggestions de coffres</Label>
             <select
-              className="select select-bordered w-full max-w-xs"
+              className="max-w-xs"
               value=""
               onChange={(e) => {
                 const v = e.target.value;
@@ -461,38 +475,38 @@ export default function LocationDetail() {
               ))}
             </select>
           </div>
-          <form onSubmit={handleAddSafe} className="flex gap-2 mb-4">
-            <input
+          <form onSubmit={handleAddSafe} className="mb-4 flex gap-2">
+            <Input
               type="text"
-              className="input input-bordered flex-1"
+              className="flex-1"
               placeholder="Ou saisir un nom personnalisé (ex : Coffre salon)"
               value={newSafeName}
               onChange={(e) => setNewSafeName(e.target.value)}
             />
-            <button type="submit" className="btn btn-secondary" disabled={addingSafe || !newSafeName.trim()}>
+            <Button type="submit" variant="secondary" disabled={addingSafe || !newSafeName.trim()}>
               <FontAwesomeIcon icon={faPlus} className="mr-2" />
               Ajouter
-            </button>
+            </Button>
           </form>
           {safes.length === 0 ? (
-            <p className="text-base-content/60 text-sm">Aucun coffre. Ajoutez-en un ci-dessus.</p>
+            <p className="text-sm text-muted-foreground">Aucun coffre. Ajoutez-en un ci-dessus.</p>
           ) : (
             <ul className="space-y-2">
               {safes.map((safe) => (
                 <li
                   key={safe.id}
                   ref={safe.id === lastAddedSafeId ? addedSafeRef : undefined}
-                  className={`flex items-center justify-between p-3 rounded-lg transition-all duration-300 ${
+                  className={`flex items-center justify-between rounded-lg p-3 transition-all duration-300 ${
                     safe.id === lastAddedSafeId
-                      ? 'bg-success/25 ring-2 ring-success shadow-md'
-                      : 'bg-base-200'
+                      ? 'ring-2 ring-green-500 bg-green-500/15 shadow-md dark:bg-green-500/20'
+                      : 'bg-muted/50'
                   }`}
                 >
                   {editingSafeId === safe.id ? (
-                    <div className="flex items-center gap-2 flex-1 mr-2">
-                      <input
+                    <div className="mr-2 flex flex-1 items-center gap-2">
+                      <Input
                         type="text"
-                        className="input input-bordered input-sm flex-1"
+                        className="h-9 flex-1"
                         value={editingSafeName}
                         onChange={(e) => setEditingSafeName(e.target.value)}
                         onKeyDown={(e) => {
@@ -501,58 +515,65 @@ export default function LocationDetail() {
                         }}
                         autoFocus
                       />
-                      <button
+                      <Button
                         type="button"
-                        className="btn btn-sm btn-secondary"
+                        size="sm"
+                        variant="secondary"
                         onClick={handleSaveSafeName}
                         disabled={savingSafe || !editingSafeName.trim()}
                         title="Enregistrer"
                       >
                         <FontAwesomeIcon icon={faCheck} />
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        size="sm"
+                        variant="ghost"
                         onClick={cancelEditSafe}
                         disabled={savingSafe}
                         title="Annuler"
                       >
                         <FontAwesomeIcon icon={faTimes} />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
                     <>
                       <div className="flex items-center gap-3">
                         <a
                           href={`/safe/${safe.id}`}
-                          className="font-medium hover:underline flex items-center gap-2"
+                          className="flex items-center gap-2 font-medium hover:underline"
                         >
                           {safe.name}
-                          <span className="text-sm text-base-content/60">
+                          <span className="text-sm text-muted-foreground">
                             ({safe._count?.images ?? 0} photo{(safe._count?.images ?? 0) !== 1 ? 's' : ''})
                           </span>
                         </a>
                       </div>
                       <div className="flex gap-2">
-                        <button
+                        <Button
                           type="button"
-                          className="btn btn-sm btn-ghost"
+                          size="sm"
+                          variant="ghost"
                           onClick={() => startEditSafe(safe)}
                           title="Modifier le nom"
                         >
                           <FontAwesomeIcon icon={faPen} />
-                        </button>
-                        <a href={`/safe/${safe.id}`} className="btn btn-sm btn-ghost" title="Voir et gérer les photos">
-                          <FontAwesomeIcon icon={faImage} />
-                        </a>
-                        <button
+                        </Button>
+                        <Button variant="ghost" size="sm" asChild>
+                          <a href={`/safe/${safe.id}`} title="Voir et gérer les photos">
+                            <FontAwesomeIcon icon={faImage} />
+                          </a>
+                        </Button>
+                        <Button
                           type="button"
-                          className="btn btn-sm btn-error btn-ghost"
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => handleDeleteSafe(safe.id)}
                           title="Supprimer le coffre"
                         >
                           <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        </Button>
                       </div>
                     </>
                   )}
@@ -560,8 +581,8 @@ export default function LocationDetail() {
               ))}
             </ul>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

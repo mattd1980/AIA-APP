@@ -2,111 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
-  font-family: "M PLUS Rounded 1c", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* Ensure button text is always readable with proper contrast */
-/* Primary button (yellow) - always visible, never same as card (base-100) */
-.btn-primary {
-  color: #1F2937 !important;
-  background-color: var(--p, #FFD41D) !important;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
-.btn-primary:hover,
-.btn-primary.btn-active {
-  background-color: var(--pf, #FFE066) !important;
-}
-
-/* All other colored buttons - use white text for good contrast */
-.btn-secondary,
-.btn-accent,
-.btn-error,
-.btn-info,
-.btn-success,
-.btn-warning {
-  color: #FFFFFF !important;
-}
-
-/* Ghost buttons - inherit from base-content for proper contrast */
-.btn-ghost {
-  color: inherit !important;
-}
-
-/* Neutral buttons - use white text */
-.btn-neutral {
-  color: #FFFFFF !important;
-}
-
-/* Fix disabled button contrast */
-.btn:disabled,
-.btn-disabled {
-  opacity: 0.6;
-  color: inherit !important;
-}
-
-/* Dark mode specific overrides - handle both media query and DaisyUI theme attribute */
-@media (prefers-color-scheme: dark),
-[data-theme="dark"] {
-  /* In dark mode, ensure all buttons have proper contrast */
-  .btn-primary {
-    /* Yellow button - keep dark text even in dark mode for contrast */
-    color: #1F2937 !important;
+@layer base {
+  :root {
+    --radius: 0.625rem;
+    --background: 0 0% 98%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    /* Brand: primary yellow #FFD41D */
+    --primary: 48 100% 52%;
+    --primary-foreground: 222.2 84% 4.9%;
+    /* Brand: secondary orange #FFA240 */
+    --secondary: 32 100% 63%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 16% 38%;
+    /* Brand: accent red #D73535 */
+    --accent: 0 63% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 64%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 48 100% 52%;
+    --chart-1: 48 100% 52%;
+    --chart-2: 32 100% 63%;
+    --chart-3: 0 63% 52%;
+    --chart-4: 142 71% 45%;
+    --chart-5: 221 83% 53%;
   }
-  
-  .btn-secondary,
-  .btn-accent,
-  .btn-error,
-  .btn-info,
-  .btn-success,
-  .btn-warning,
-  .btn-neutral {
-    /* All colored buttons - white text for contrast */
-    color: #FFFFFF !important;
-  }
-  
-  .btn-ghost {
-    /* Ghost buttons should use light text in dark mode */
-    color: #FFFFFF !important;
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 48 100% 52%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 32 100% 63%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 0 63% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 64%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 48 100% 52%;
+    --chart-1: 48 100% 52%;
+    --chart-2: 32 100% 63%;
+    --chart-3: 0 63% 52%;
+    --chart-4: 142 71% 45%;
+    --chart-5: 221 83% 53%;
   }
 }
 
-/* Add more horizontal padding to buttons for better spacing */
-.btn {
-  padding-left: 1.5rem !important;
-  padding-right: 1.5rem !important;
-}
+@layer base {
+  * {
+    @apply border-border;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    margin: 0;
+    font-family: "M PLUS Rounded 1c", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-.btn-sm {
-  padding-left: 1rem !important;
-  padding-right: 1rem !important;
-}
-
-.btn-lg {
-  padding-left: 2rem !important;
-  padding-right: 2rem !important;
+  /* Native select: consistent look and readable dropdown list (no white-on-white) */
+  select {
+    @apply flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50;
+  }
+  select option {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
 }
 
 /* Prevent content overflow in cards */
-.card {
-  overflow: hidden;
-  word-wrap: break-word;
-}
-
 .card-body {
   overflow-wrap: break-word;
   word-break: break-word;
-}
-
-/* Ensure inputs and textareas don't overflow */
-.input,
-.select,
-.textarea {
-  max-width: 100%;
-  box-sizing: border-box;
 }
 
 /* Ensure grid items don't overflow */

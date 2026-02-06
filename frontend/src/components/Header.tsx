@@ -1,6 +1,14 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBox, faSignOutAlt, faUser } from '@fortawesome/free-solid-svg-icons';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -8,58 +16,55 @@ export default function Header() {
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Utilisateur';
 
   return (
-    <header className="navbar bg-base-100 shadow-md sticky top-0 z-50 min-h-[4rem]">
-      <div className="flex-1">
-        <a href="/" className="btn btn-ghost text-xl">
-          <FontAwesomeIcon icon={faBox} className="text-primary mr-2" />
-          Inventory AI
+    <header className="sticky top-0 z-50 flex min-h-16 w-full items-center gap-4 border-b bg-background px-4 shadow-sm">
+      <div className="flex flex-1">
+        <a href="/">
+          <Button variant="ghost" className="text-xl font-semibold">
+            <FontAwesomeIcon icon={faBox} className="mr-2 text-primary" />
+            Inventory AI
+          </Button>
         </a>
       </div>
-      <div className="flex-none flex items-center gap-2">
+      <div className="flex items-center gap-2">
         {user && (
-          <div className="dropdown dropdown-end">
-            <div
-              tabIndex={0}
-              role="button"
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-base-200 transition-colors cursor-pointer min-h-0"
-              aria-label="Menu utilisateur"
-            >
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-base-300 flex-shrink-0">
-                {user.picture ? (
-                  <img
-                    src={user.picture}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-primary text-sm">
-                    <FontAwesomeIcon icon={faUser} />
-                  </div>
-                )}
-              </div>
-              <span className="hidden sm:inline font-medium max-w-[120px] truncate leading-none">
-                {displayName}
-              </span>
-            </div>
-            <ul
-              tabIndex={0}
-              className="mt-3 z-[1] p-2 shadow menu menu-sm dropdown-content bg-base-100 rounded-box w-56 border border-base-300"
-            >
-              <li className="menu-title px-4 pt-2 pb-1">
-                <span className="text-base-content/70 text-xs">{user.email}</span>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="text-error gap-2"
-                >
-                  <FontAwesomeIcon icon={faSignOutAlt} />
-                  Déconnexion
-                </button>
-              </li>
-            </ul>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-2 rounded-full px-2 py-1.5"
+                aria-label="Menu utilisateur"
+              >
+                <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-muted">
+                  {user.picture ? (
+                    <img
+                      src={user.picture}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-primary text-sm">
+                      <FontAwesomeIcon icon={faUser} />
+                    </div>
+                  )}
+                </div>
+                <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+                  {displayName}
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <span className="text-muted-foreground text-xs">{user.email}</span>
+              </DropdownMenuLabel>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={logout}
+              >
+                <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+                Déconnexion
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </header>

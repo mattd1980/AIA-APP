@@ -32,7 +32,7 @@ function App() {
             path="/*"
             element={
               <ProtectedRoute>
-                <div className="min-h-screen bg-base-200 flex flex-col">
+                <div className="flex min-h-screen flex-col bg-muted/30">
                   <Header />
                   <main className="flex-grow">
                     <Routes>

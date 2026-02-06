@@ -1,20 +1,24 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function CookiePolicy() {
   return (
-    <div className="min-h-screen bg-base-200 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <Link to="/" className="btn btn-ghost mb-6">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          Retour à l'accueil
+    <div className="min-h-screen bg-muted/30 py-8 px-4">
+      <div className="mx-auto max-w-4xl">
+        <Link to="/">
+          <Button variant="ghost" className="mb-6">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            Retour à l'accueil
+          </Button>
         </Link>
 
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h1 className="text-4xl font-bold mb-6">Politique des Cookies</h1>
-            <p className="text-sm text-base-content/70 mb-8">
+        <Card className="shadow-xl">
+          <CardContent className="p-6">
+            <h1 className="mb-6 text-4xl font-bold">Politique des Cookies</h1>
+            <p className="mb-8 text-sm text-muted-foreground">
               Dernière mise à jour : {new Date().toLocaleDateString('fr-CA')}
             </p>
 
@@ -139,8 +143,8 @@ export default function CookiePolicy() {
                 </p>
               </section>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

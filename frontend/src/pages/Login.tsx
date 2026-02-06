@@ -3,8 +3,15 @@ import { useSearchParams } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faLock } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
-import api from '../services/api';
-import Footer from '../components/Footer';
+import api from '@/services/api';
+import Footer from '@/components/Footer';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
+import { Spinner } from '@/components/ui/spinner';
 
 type DbStatus = 'checking' | 'ok' | 'error';
 
@@ -44,17 +51,13 @@ export default function Login() {
   }, [searchParams, setSearchParams]);
 
   useEffect(() => {
-    // Check if user is already logged in
     api.get('/api/auth/me')
       .then((res) => {
         if (res.data) {
-          // Admin goes to /admin, others to home
           window.location.href = res.data.isAdmin ? '/admin' : '/';
         }
       })
-      .catch(() => {
-        // Not logged in, stay on login page
-      });
+      .catch(() => {});
   }, []);
 
   const backendBase =
@@ -75,53 +78,50 @@ export default function Login() {
       const response = await api.post('/api/auth/login', { username, password });
 
       if (response.data) {
-        // Admin -> /admin, regular user -> home
         window.location.href = response.data.isAdmin ? '/admin' : '/';
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur de connexion');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || 'Erreur de connexion');
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-base-200">
-      <div className="flex-grow flex items-center justify-center px-4 py-4 sm:py-8 pb-24 sm:pb-20">
-        <div className="card bg-base-100 shadow-2xl w-full max-w-md relative">
-          {/* Database status LED - top right of card */}
+    <div className="flex min-h-screen flex-col bg-muted/30">
+      <div className="flex flex-1 items-center justify-center px-4 py-4 pb-24 sm:py-8 sm:pb-20">
+        <Card className="relative w-full max-w-md shadow-2xl">
           <span
-            className={`absolute top-4 right-4 inline-block w-3 h-3 rounded-full border border-base-content/20 ${
+            className={`absolute right-4 top-4 inline-block h-3 w-3 rounded-full border ${
               dbStatus === 'checking'
-                ? 'bg-amber-400 animate-pulse'
+                ? 'border-amber-400 bg-amber-400 animate-pulse'
                 : dbStatus === 'ok'
-                  ? 'bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
-                  : 'bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.6)]'
+                  ? 'border-green-500 bg-green-500 shadow-[0_0_8px_2px_rgba(34,197,94,0.6)]'
+                  : 'border-red-500 bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.6)]'
             }`}
             title={dbStatus === 'ok' ? 'Base de données connectée' : dbStatus === 'error' ? 'Base de données indisponible' : 'Vérification…'}
             aria-hidden
           />
-          <div className="card-body pb-4 sm:pb-6">
-            <div className="text-center mb-6">
-              <h1 className="text-4xl font-bold mb-2">Inventory AI</h1>
-              <p className="text-base-content/70">
+          <CardContent className="pb-4 sm:pb-6 sm:pt-6">
+            <div className="mb-6 text-center">
+              <h1 className="mb-2 text-4xl font-bold">Inventory AI</h1>
+              <p className="text-muted-foreground">
                 Connectez-vous pour gérer vos inventaires
               </p>
             </div>
 
-            {/* Username/Password Form */}
             <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div className="form-control">
-                <label className="label py-1">
-                  <span className="label-text">Email</span>
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 pointer-events-none">
-                    <FontAwesomeIcon icon={faUser} className="text-sm" />
+                  <span className="absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center pointer-events-none text-muted-foreground">
+                    <FontAwesomeIcon icon={faUser} className="text-base" />
                   </span>
-                  <input
+                  <Input
+                    id="email"
                     type="email"
                     placeholder="vous@exemple.com"
-                    className="input input-bordered w-full pl-9 py-2.5 rounded-md border border-base-content/20 bg-base-100"
+                    className="pl-9"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -129,18 +129,17 @@ export default function Login() {
                 </div>
               </div>
 
-              <div className="form-control">
-                <label className="label py-1">
-                  <span className="label-text">Mot de passe</span>
-                </label>
+              <div className="space-y-2">
+                <Label htmlFor="password">Mot de passe</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base-content/50 pointer-events-none">
-                    <FontAwesomeIcon icon={faLock} className="text-sm" />
+                  <span className="absolute left-3 top-1/2 z-10 flex -translate-y-1/2 items-center pointer-events-none text-muted-foreground">
+                    <FontAwesomeIcon icon={faLock} className="text-base" />
                   </span>
-                  <input
+                  <Input
+                    id="password"
                     type="password"
                     placeholder="Mot de passe"
-                    className="input input-bordered w-full pl-9 py-2.5 rounded-md border border-base-content/20 bg-base-100"
+                    className="pl-9"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -149,51 +148,55 @@ export default function Login() {
               </div>
 
               {error && (
-                <div className="alert alert-error">
-                  <span>{error}</span>
-                </div>
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
 
-              <button
+              <Button
                 type="submit"
-                className="btn btn-primary w-full border-2 border-primary/40 shadow-md"
+                className="w-full shadow-md"
                 disabled={loading}
               >
                 {loading ? (
-                  <span className="loading loading-spinner"></span>
-                ) : (
-                  'Se connecter'
-                )}
-              </button>
+                  <Spinner className="size-4" data-icon="inline-start" />
+                ) : null}
+                Se connecter
+              </Button>
             </form>
 
             {googleEnabled && (
               <>
-                <div className="divider text-base-content/50 text-sm">ou</div>
-                <button
+                <div className="my-4 flex items-center gap-4">
+                  <Separator className="flex-1" />
+                  <span className="text-muted-foreground text-sm">ou</span>
+                  <Separator className="flex-1" />
+                </div>
+                <Button
                   type="button"
-                  className="btn btn-outline w-full gap-2 border-2"
+                  variant="outline"
+                  className="w-full gap-2"
                   onClick={handleGoogleLogin}
                 >
                   <FontAwesomeIcon icon={faGoogle} className="text-lg" />
                   Se connecter avec Google
-                </button>
+                </Button>
               </>
             )}
 
-            <p className="text-xs text-center text-base-content/50 mt-6 leading-relaxed px-2 break-words">
+            <p className="mt-6 break-words px-2 text-center text-muted-foreground text-xs leading-relaxed">
               En vous connectant, vous acceptez nos{' '}
-              <a href="/terms" className="link link-primary break-all">
+              <a href="/terms" className="text-primary underline-offset-4 hover:underline break-all">
                 conditions d'utilisation
               </a>{' '}
               et notre{' '}
-              <a href="/privacy" className="link link-primary break-all">
+              <a href="/privacy" className="text-primary underline-offset-4 hover:underline break-all">
                 politique de confidentialité
               </a>
               .
             </p>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
       <Footer />
     </div>

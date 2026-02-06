@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
-import { inventoryApi } from '../services/api';
-import type { InventoryItem } from '../services/api';
-import ImageWithBoundingBox from './ImageWithBoundingBox';
-import { CATEGORY_OPTIONS as categories } from '../constants/categories';
+import { inventoryApi } from '@/services/api';
+import type { InventoryItem } from '@/services/api';
+import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
+import { CATEGORY_OPTIONS as categories } from '@/constants/categories';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Spinner } from '@/components/ui/spinner';
 
 interface EditableItemProps {
   item: InventoryItem;
@@ -85,51 +91,37 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
   if (isEditing) {
     return (
-      <div className="card bg-base-100 border-2 border-primary overflow-hidden">
-        <div className="card-body p-4 overflow-hidden">
-          <div className="flex justify-between items-center mb-2 gap-2">
-            <h3 className="font-bold break-words min-w-0 flex-1">Modifier l'item</h3>
-            <div className="flex gap-2 flex-shrink-0">
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={handleSave}
-                disabled={saving}
-              >
+      <Card className="overflow-hidden border-2 border-primary">
+        <CardContent className="overflow-hidden p-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <h3 className="min-w-0 flex-1 break-words font-bold">Modifier l'item</h3>
+            <div className="flex shrink-0 gap-2">
+              <Button size="sm" onClick={handleSave} disabled={saving}>
                 <FontAwesomeIcon icon={faSave} className="mr-1" />
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
-              </button>
-              <button
-                className="btn btn-sm btn-ghost"
-                onClick={handleCancel}
-                disabled={saving}
-              >
+              </Button>
+              <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}>
                 <FontAwesomeIcon icon={faTimes} />
-              </button>
+              </Button>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div>
-              <label className="label">
-                <span className="label-text tooltip" data-tip="Nom de l'item">
-                  Nom
-                </span>
-              </label>
-              <input
+            <div className="space-y-2">
+              <Label title="Nom de l'item">Nom</Label>
+              <Input
                 type="text"
-                className="input input-bordered w-full"
+                className="w-full"
                 value={formData.itemName}
                 onChange={(e) => setFormData({ ...formData, itemName: e.target.value })}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="label">
-                  <span className="label-text">Catégorie</span>
-                </label>
+              <div className="space-y-2">
+                <Label>Catégorie</Label>
                 <select
-                  className="select select-bordered w-full"
+                  className="w-full"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 >
@@ -141,12 +133,10 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
                 </select>
               </div>
 
-              <div>
-                <label className="label">
-                  <span className="label-text">État</span>
-                </label>
+              <div className="space-y-2">
+                <Label>État</Label>
                 <select
-                  className="select select-bordered w-full"
+                  className="w-full"
                   value={formData.condition}
                   onChange={(e) => setFormData({ ...formData, condition: e.target.value })}
                 >
@@ -159,14 +149,10 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               </div>
             </div>
 
-            <div>
-              <label className="label">
-                <span className="label-text tooltip" data-tip="Notes optionnelles sur cet item">
-                  Notes
-                </span>
-              </label>
-              <textarea
-                className="textarea textarea-bordered w-full"
+            <div className="space-y-2">
+              <Label title="Notes optionnelles sur cet item">Notes</Label>
+              <Textarea
+                className="min-h-[80px] w-full"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="Ajoutez des notes sur cet item (optionnel)"
@@ -175,61 +161,55 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
             </div>
 
             <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="label">
-                  <span className="label-text tooltip" data-tip="Valeur estimée en dollars canadiens (CAD)">
-                    Valeur estimée
-                  </span>
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label title="Valeur estimée en dollars canadiens (CAD)">Valeur estimée</Label>
+                <Input
                   type="number"
-                  className="input input-bordered w-full"
+                  className="w-full"
                   value={formData.estimatedValue}
                   onChange={(e) => setFormData({ ...formData, estimatedValue: e.target.value })}
                   step="0.01"
-                  min="0"
+                  min={0}
                 />
               </div>
 
-              <div>
-                <label className="label">
-                  <span className="label-text tooltip" data-tip="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
-                    Remplacement
-                  </span>
-                </label>
-                <input
+              <div className="space-y-2">
+                <Label title="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
+                  Remplacement
+                </Label>
+                <Input
                   type="number"
-                  className="input input-bordered w-full"
+                  className="w-full"
                   value={formData.replacementValue}
                   onChange={(e) => setFormData({ ...formData, replacementValue: e.target.value })}
                   step="0.01"
-                  min="0"
+                  min={0}
                 />
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="card bg-base-100 border border-base-300 hover:border-primary transition-colors overflow-hidden">
-      <div className="card-body p-4 overflow-hidden">
-        <div className="flex items-start justify-between mb-2 gap-2">
-          <div className="flex-1 min-w-0">
-            <h3 className="card-title text-lg mb-1 break-words">{item.itemName}</h3>
+    <Card className="overflow-hidden border border-border transition-colors hover:border-primary">
+      <CardContent className="overflow-hidden p-4">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-1 break-words text-lg font-semibold">{item.itemName}</h3>
           </div>
-          <div className="flex gap-2 items-center flex-shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <span
-              className={`badge ${
+              className={`rounded-md px-2 py-0.5 text-xs font-medium ${
                 item.condition === 'excellent'
-                  ? 'badge-success'
+                  ? 'bg-green-500/20 text-green-700 dark:text-green-300'
                   : item.condition === 'good'
-                  ? 'badge-primary'
+                  ? 'bg-primary/20 text-foreground'
                   : item.condition === 'fair'
-                  ? 'badge-warning'
-                  : 'badge-error'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                  : 'bg-destructive/20 text-destructive'
               }`}
             >
               {conditions.find((c) => c.value === item.condition)?.label || item.condition}
@@ -238,33 +218,26 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         </div>
 
         {/* Action buttons - always visible */}
-        <div className="flex gap-2 mb-3">
-          <button
-            className="btn btn-sm btn-primary flex-1"
-            onClick={() => setIsEditing(true)}
-            disabled={deleting}
-          >
+        <div className="mb-3 flex gap-2">
+          <Button size="sm" className="flex-1" onClick={() => setIsEditing(true)} disabled={deleting}>
             <FontAwesomeIcon icon={faEdit} className="mr-2" />
             Modifier
-          </button>
-          <button
-            className="btn btn-sm btn-error"
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
             onClick={handleDelete}
             disabled={deleting}
             title="Supprimer"
           >
-            {deleting ? (
-              <span className="loading loading-spinner loading-sm"></span>
-            ) : (
-              <FontAwesomeIcon icon={faTrash} />
-            )}
-          </button>
+            {deleting ? <Spinner className="size-4" /> : <FontAwesomeIcon icon={faTrash} />}
+          </Button>
         </div>
 
         {/* Display images associated with this item */}
         {item.images && item.images.length > 0 && (
           <div className="mt-3 mb-3">
-            <p className="text-xs text-base-content/60 mb-2">
+            <p className="mb-2 text-xs text-muted-foreground">
               <FontAwesomeIcon icon={faImage} className="mr-1" />
               Image(s) d'origine :
             </p>
@@ -288,7 +261,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
                       <img
                         src={inventoryApi.getImageUrl(inventoryId, image.id)}
                         alt={image.fileName}
-                        className="w-20 h-20 object-cover rounded-lg border border-base-300 hover:border-primary transition-colors"
+                        className="h-20 w-20 rounded-lg border border-border object-cover transition-colors hover:border-primary"
                         title={image.fileName}
                       />
                     )}
@@ -313,13 +286,15 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
             className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
             onClick={() => setSelectedImage(null)}
           >
-            <div className="max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
-              <button
-                className="btn btn-sm btn-circle btn-ghost absolute top-4 right-4 text-white z-10"
+            <div className="max-h-[90vh] w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="absolute right-4 top-4 z-10 text-white hover:bg-white/20"
                 onClick={() => setSelectedImage(null)}
               >
                 <FontAwesomeIcon icon={faTimes} />
-              </button>
+              </Button>
               {item.aiAnalysis?.boundingBox ? (
                 <ImageWithBoundingBox
                   imageUrl={inventoryApi.getImageUrl(inventoryId, selectedImage)}
@@ -339,18 +314,18 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
         )}
 
         {item.aiAnalysis?.description && (
-          <div className="mt-3 mb-2">
-            <p className="text-xs text-base-content/50 italic break-words">
+          <div className="mb-2 mt-3">
+            <p className="break-words text-xs italic text-muted-foreground">
               {item.aiAnalysis.description}
             </p>
           </div>
         )}
 
-        <div className="divider my-2"></div>
+        <div className="my-2 h-px bg-border" />
 
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-base-content/60 tooltip" data-tip="Valeur estimée en dollars canadiens (CAD)">
+            <p className="text-xs text-muted-foreground" title="Valeur estimée en dollars canadiens (CAD)">
               Valeur estimée
             </p>
             <p className="text-lg font-bold text-primary break-words">
@@ -358,8 +333,8 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               {item.estimatedValue.toFixed(2)}
             </p>
           </div>
-          <div className="text-right min-w-0 flex-1">
-            <p className="text-xs text-base-content/60 tooltip" data-tip="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
+          <div className="min-w-0 flex-1 text-right">
+            <p className="text-xs text-muted-foreground" title="Valeur de remplacement en dollars canadiens (CAD) - montant pour remplacer l'item">
               Remplacement
             </p>
             <p className="text-lg font-semibold text-secondary break-words">
@@ -371,13 +346,13 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
         {item.notes && (
           <div className="mt-2">
-            <p className="text-xs text-base-content/60 font-semibold mb-1">Notes:</p>
-            <p className="text-sm text-base-content/70 break-words whitespace-pre-wrap">
+            <p className="mb-1 text-xs font-semibold text-muted-foreground">Notes:</p>
+            <p className="break-words whitespace-pre-wrap text-sm text-muted-foreground">
               {item.notes}
             </p>
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

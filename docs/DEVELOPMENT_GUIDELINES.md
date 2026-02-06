@@ -77,7 +77,7 @@ project-root/
 ### Frontend
 - **Framework** : React avec TypeScript
 - **Build Tool** : Vite (pas Create React App)
-- **UI Library** : DaisyUI + Tailwind CSS
+- **UI Library** : shadcn/ui + Tailwind CSS
 - **Icons** : Font Awesome (FA) - **PAS d'emojis dans le code**
 - **State Management** : Context API (pour MVP), Zustand si nécessaire plus tard
 - **Image Upload** : React Dropzone
@@ -111,7 +111,7 @@ Danger:    #FF4646 (Rouge vif)
 ```
 
 ### Composants UI
-- **Cards** : Élément central de l'UI (DaisyUI cards)
+- **Cards** : Élément central de l'UI (shadcn Card)
 - **Icons** : Font Awesome uniquement (pas d'emojis)
 - **Style** : Moderne, léger, beaucoup d'espace blanc
 - **Responsive** : Mobile-first
@@ -410,7 +410,7 @@ export function validateInventory(data) {
 - `react` + `react-dom`
 - `vite` - Build tool
 - `@tanstack/react-query` - Data fetching (optionnel)
-- `daisyui` - UI components
+- `@/components/ui/*` - shadcn/ui components (Button, Card, Input, etc.)
 - `tailwindcss` - CSS framework
 - `@fortawesome/react-fontawesome` - Icons
 - `react-dropzone` - File upload
@@ -439,7 +439,7 @@ export function validateInventory(data) {
 ### 3. Ajouter un composant UI
 ```
 1. Créer dans components/
-2. Utiliser DaisyUI + Font Awesome
+2. Utiliser shadcn/ui + Font Awesome
 3. Suivre les guidelines dans docs/UI.md
 4. Ajouter les tests si nécessaire
 ```

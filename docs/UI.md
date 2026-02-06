@@ -2,7 +2,7 @@
 
 ## Vue d'Ensemble
 
-Ce document définit les principes de design, les composants UI, et les guidelines pour créer une interface moderne, légère et intuitive pour l'application d'inventaire IA. Le design s'appuie sur DaisyUI, Font Awesome, et une palette de couleurs vibrante alignée avec les tendances 2026.
+Ce document définit les principes de design, les composants UI, et les guidelines pour créer une interface moderne, légère et intuitive pour l'application d'inventaire IA. Le design s'appuie sur shadcn/ui, Font Awesome, et une palette de couleurs vibrante alignée avec les tendances 2026.
 
 ---
 
@@ -81,12 +81,12 @@ Ce document définit les principes de design, les composants UI, et les guidelin
 
 ---
 
-## Configuration DaisyUI
+## Configuration shadcn/ui
 
 ### Installation
 
 ```bash
-npm install daisyui
+npx shadcn@latest init  # puis npx shadcn@latest add button card input ...
 ```
 
 ### Configuration Tailwind (tailwind.config.js)
@@ -107,8 +107,10 @@ module.exports = {
       },
     },
   },
-  plugins: [require("daisyui")],
-  daisyui: {
+  plugins: [require("tailwindcss-animate")],
+  // Thème via CSS variables dans src/index.css (voir shadcn theming)
+  // Ancienne config daisyui remplacée par shadcn. Exemple conservé :
+  _daisyui_example: {
     themes: [
       {
         light: {
@@ -825,7 +827,7 @@ xl: 1280px  /* Large desktop */
 
 ## Ressources
 
-- [DaisyUI Documentation](https://daisyui.com)
+- [shadcn/ui Documentation](https://ui.shadcn.com)
 - [Font Awesome Icons](https://fontawesome.com/icons)
 - [Tailwind CSS Documentation](https://tailwindcss.com)
 - [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)

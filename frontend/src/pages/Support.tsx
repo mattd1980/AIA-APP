@@ -1,25 +1,29 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faEnvelope, faCircleQuestion } from '@fortawesome/free-solid-svg-icons';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 const SUPPORT_EMAIL = 'info@heliacode.com';
 
 export default function Support() {
   return (
-    <div className="min-h-screen bg-base-200 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <Link to="/" className="btn btn-ghost mb-6">
-          <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
-          Retour à l'accueil
+    <div className="min-h-screen bg-muted/30 py-8 px-4">
+      <div className="mx-auto max-w-4xl">
+        <Link to="/">
+          <Button variant="ghost" className="mb-6">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
+            Retour à l'accueil
+          </Button>
         </Link>
 
-        <div className="card bg-base-100 shadow-xl">
-          <div className="card-body">
-            <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
+        <Card className="shadow-xl">
+          <CardContent className="p-6">
+            <h1 className="mb-2 flex items-center gap-3 text-4xl font-bold">
               <FontAwesomeIcon icon={faCircleQuestion} className="text-primary" />
               Support & Contact
             </h1>
-            <p className="text-base-content/70 mb-8">
+            <p className="mb-8 text-muted-foreground">
               Une question, un problème ou une demande ? Nous sommes là pour vous aider.
             </p>
 
@@ -35,18 +39,20 @@ export default function Support() {
                   <strong>Email :</strong>{' '}
                   <a
                     href={`mailto:${SUPPORT_EMAIL}`}
-                    className="link link-primary font-semibold"
+                    className="text-primary font-semibold underline-offset-4 hover:underline"
                   >
                     {SUPPORT_EMAIL}
                   </a>
                 </p>
                 <p className="mb-4 flex items-center gap-2">
                   <FontAwesomeIcon icon={faEnvelope} />
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="btn btn-primary btn-sm">
+                  <Button asChild size="sm">
+                  <a href={`mailto:${SUPPORT_EMAIL}`}>
                     Envoyer un email
                   </a>
+                </Button>
                 </p>
-                <p className="text-sm text-base-content/70">
+                <p className="text-sm text-muted-foreground">
                   Nous nous efforçons de répondre dans les meilleurs délais.
                 </p>
               </section>
@@ -55,17 +61,17 @@ export default function Support() {
                 <h2 className="text-2xl font-semibold mb-4">Liens utiles</h2>
                 <ul className="list-none space-y-2">
                   <li>
-                    <Link to="/terms" className="link link-hover">
+                    <Link to="/terms" className="text-primary underline-offset-4 hover:underline">
                       Conditions d'utilisation
                     </Link>
                   </li>
                   <li>
-                    <Link to="/privacy" className="link link-hover">
+                    <Link to="/privacy" className="text-primary underline-offset-4 hover:underline">
                       Politique de confidentialité
                     </Link>
                   </li>
                   <li>
-                    <Link to="/cookies" className="link link-hover">
+                    <Link to="/cookies" className="text-primary underline-offset-4 hover:underline">
                       Politique des cookies
                     </Link>
                   </li>
@@ -77,14 +83,14 @@ export default function Support() {
                 <p className="mb-4">
                   Inventory AI est développé par Heliacode. Pour toute demande générale
                   ou commerciale, utilisez la même adresse de contact :{' '}
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="link link-primary">
+                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline-offset-4 hover:underline">
                     {SUPPORT_EMAIL}
                   </a>
                 </p>
               </section>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

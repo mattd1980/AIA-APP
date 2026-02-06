@@ -2,32 +2,48 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="footer footer-center p-4 sm:p-6 md:p-10 bg-base-200 text-base-content">
+    <footer className="border-t bg-muted/40 px-4 py-6 text-center sm:py-10 md:py-10">
       <div>
         <p className="font-bold text-lg">Inventory AI</p>
-        <p className="text-sm sm:text-base">Application d'inventaire assistée par intelligence artificielle</p>
+        <p className="text-sm sm:text-base text-muted-foreground">
+          Application d'inventaire assistée par intelligence artificielle
+        </p>
       </div>
-      <div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 items-center flex-wrap justify-center">
-          <Link to="/privacy" className="link link-hover text-sm">
+      <div className="mt-4">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
+          <Link
+            to="/privacy"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
             Confidentialité
           </Link>
           <span className="hidden sm:inline">•</span>
-          <Link to="/terms" className="link link-hover text-sm">
+          <Link
+            to="/terms"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
             Conditions d'utilisation
           </Link>
           <span className="hidden sm:inline">•</span>
-          <Link to="/support" className="link link-hover text-sm">
+          <Link
+            to="/support"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
             Support
           </Link>
           <span className="hidden sm:inline">•</span>
-          <Link to="/cookies" className="link link-hover text-sm">
+          <Link
+            to="/cookies"
+            className="text-sm text-primary underline-offset-4 hover:underline"
+          >
             Politique des cookies
           </Link>
         </div>
       </div>
-      <div>
-        <p className="text-xs sm:text-sm">© {new Date().getFullYear()} Inventory AI. Tous droits réservés.</p>
+      <div className="mt-4">
+        <p className="text-muted-foreground text-xs sm:text-sm">
+          © {new Date().getFullYear()} Inventory AI. Tous droits réservés.
+        </p>
       </div>
     </footer>
   );

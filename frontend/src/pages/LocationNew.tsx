@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { locationsApi } from '../services/api';
+import { locationsApi } from '@/services/api';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function LocationNew() {
   const navigate = useNavigate();
@@ -23,56 +27,55 @@ export default function LocationNew() {
         address: address.trim() || undefined,
       });
       navigate(`/location/${location.id}`);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de la création');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      setError(axiosErr.response?.data?.error || 'Erreur lors de la création');
       setSaving(false);
     }
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-lg">
-      <h1 className="text-3xl font-bold mb-6">Nouveau lieu</h1>
-      <p className="text-base-content/70 mb-6">
+    <div className="container mx-auto max-w-lg px-4 py-8">
+      <h1 className="mb-6 text-3xl font-bold">Nouveau lieu</h1>
+      <p className="mb-6 text-muted-foreground">
         Ajoutez une adresse ou un domicile (maison, appartement, etc.). Vous pourrez ensuite y ajouter des pièces et des coffres, chacun avec des photos.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Nom du lieu *</span>
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="location-name">Nom du lieu *</Label>
+          <Input
+            id="location-name"
             type="text"
-            className="input input-bordered w-full"
+            className="h-10 w-full"
             placeholder="Ex : Maison principale, 123 rue Example"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
         </div>
-        <div className="form-control">
-          <label className="label">
-            <span className="label-text">Adresse (optionnel)</span>
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="location-address">Adresse (optionnel)</Label>
+          <Input
+            id="location-address"
             type="text"
-            className="input input-bordered w-full"
+            className="h-10 w-full"
             placeholder="Ex : 123 rue Example, Ville"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
           />
         </div>
         {error && (
-          <div className="alert alert-error">
-            <span>{error}</span>
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         <div className="flex gap-4">
-          <button type="button" className="btn btn-ghost" onClick={() => navigate('/')}>
+          <Button type="button" variant="ghost" onClick={() => navigate('/')}>
             Annuler
-          </button>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+          </Button>
+          <Button type="submit" disabled={saving}>
             {saving ? 'Création…' : 'Créer le lieu'}
-          </button>
+          </Button>
         </div>
       </form>
     </div>
