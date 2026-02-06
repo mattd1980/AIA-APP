@@ -5,10 +5,13 @@ NODE_VERSION = "20"
 nixPkgs = ["nodejs"]
 
 [phases.install]
-cmds = ["cd backend && npm install", "cd frontend && npm install"]
+cmds = [
+  "echo '=== Installing backend ===' && cd backend && npm install",
+  "echo '=== Installing frontend ===' && cd frontend && npm install"
+]
 
 [phases.build]
-cmds = ["cd backend && npm run build"]
+cmds = ["echo '=== Building backend ===' && cd backend && npm run build"]
 
 [start]
 cmd = "cd backend && npm run railway"
