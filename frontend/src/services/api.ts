@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// In production we prefer same-origin calls (no CORS) and let the frontend server proxy `/api/*`
-// to the backend. In dev we still hit localhost backend directly.
-const API_URL = import.meta.env.PROD ? '' : (import.meta.env.VITE_API_URL || 'http://localhost:3000');
+// In production: use VITE_API_URL when set (frontend and backend on different origins, e.g. two Railway services).
+// Otherwise same-origin (backend serves frontend). In dev we hit the backend directly.
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '' : 'http://localhost:3000');
 
 const api = axios.create({
   baseURL: API_URL,

@@ -139,7 +139,9 @@ if (GOOGLE_ENABLED) {
       failureRedirect: frontendUrl ? `${frontendUrl}/login?error=auth_failed` : '/login?error=auth_failed',
     }),
     (req: Request, res: Response) => {
-      const redirectUrl = frontendUrl || '/';
+      // Redirect to app root (never to /login) so the session cookie is used on next load
+      const base = frontendUrl || '';
+      const redirectUrl = base ? `${base.replace(/\/$/, '')}/` : '/';
       res.redirect(redirectUrl);
     }
   );

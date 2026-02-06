@@ -57,9 +57,10 @@ export default function Login() {
       });
   }, []);
 
-  const backendAuthUrl = import.meta.env.PROD
-    ? `${window.location.origin}/api/auth/google`
-    : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/google`;
+  const backendBase =
+    import.meta.env.VITE_API_URL ||
+    (import.meta.env.PROD ? window.location.origin : 'http://localhost:3000');
+  const backendAuthUrl = `${backendBase.replace(/\/$/, '')}/api/auth/google`;
 
   const handleGoogleLogin = () => {
     window.location.href = backendAuthUrl;
@@ -108,19 +109,19 @@ export default function Login() {
             </div>
 
             {/* Username/Password Form */}
-            <form onSubmit={handlePasswordLogin} className="space-y-4">
+            <form onSubmit={handlePasswordLogin} className="space-y-5">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Email</span>
+                  <span className="label-text font-medium">Email</span>
                 </label>
-                <label className="input-group">
-                  <span>
+                <label className="input-group input-group-lg">
+                  <span className="bg-base-200 border border-base-content/20 border-r-0 rounded-l-xl px-4 text-base-content/70 min-w-[2.75rem] flex items-center justify-center">
                     <FontAwesomeIcon icon={faUser} />
                   </span>
                   <input
                     type="email"
                     placeholder="vous@exemple.com"
-                    className="input input-bordered w-full"
+                    className="input input-bordered input-lg w-full border-2 border-base-content/25 bg-base-200/60 placeholder:opacity-60 rounded-r-xl focus:outline-none focus:border-primary"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -130,16 +131,16 @@ export default function Login() {
 
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text">Mot de passe</span>
+                  <span className="label-text font-medium">Mot de passe</span>
                 </label>
-                <label className="input-group">
-                  <span>
+                <label className="input-group input-group-lg">
+                  <span className="bg-base-200 border border-base-content/20 border-r-0 rounded-l-xl px-4 text-base-content/70 min-w-[2.75rem] flex items-center justify-center">
                     <FontAwesomeIcon icon={faLock} />
                   </span>
                   <input
                     type="password"
                     placeholder="Mot de passe"
-                    className="input input-bordered w-full"
+                    className="input input-bordered input-lg w-full border-2 border-base-content/25 bg-base-200/60 placeholder:opacity-60 rounded-r-xl focus:outline-none focus:border-primary"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
