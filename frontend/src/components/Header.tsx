@@ -1,5 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faBox, faPlus, faSignOutAlt, faUser } from '@fortawesome/free-solid-svg-icons';
+import { faBox, faSignOutAlt, faUser } from '@fortawesome/free-solid-svg-icons';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Header() {
@@ -8,27 +8,23 @@ export default function Header() {
   const displayName = user?.name?.trim() || user?.email?.split('@')[0] || 'Utilisateur';
 
   return (
-    <header className="navbar bg-base-100 shadow-md sticky top-0 z-50">
+    <header className="navbar bg-base-100 shadow-md sticky top-0 z-50 min-h-[4rem]">
       <div className="flex-1">
         <a href="/" className="btn btn-ghost text-xl">
           <FontAwesomeIcon icon={faBox} className="text-primary mr-2" />
           Inventory AI
         </a>
       </div>
-      <div className="flex-none gap-2">
-        <a href="/location/new" className="btn btn-primary">
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Nouveau lieu
-        </a>
+      <div className="flex-none flex items-center gap-2">
         {user && (
           <div className="dropdown dropdown-end">
             <div
               tabIndex={0}
               role="button"
-              className="btn btn-ghost gap-2 pl-2 pr-3 flex items-center"
+              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-base-200 transition-colors cursor-pointer min-h-0"
               aria-label="Menu utilisateur"
             >
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-base-300 flex-shrink-0">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-base-300 flex-shrink-0">
                 {user.picture ? (
                   <img
                     src={user.picture}
@@ -36,12 +32,12 @@ export default function Header() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-primary">
+                  <div className="w-full h-full flex items-center justify-center text-primary text-sm">
                     <FontAwesomeIcon icon={faUser} />
                   </div>
                 )}
               </div>
-              <span className="hidden sm:inline font-medium text-left max-w-[120px] truncate">
+              <span className="hidden sm:inline font-medium max-w-[120px] truncate leading-none">
                 {displayName}
               </span>
             </div>

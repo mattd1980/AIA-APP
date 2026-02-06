@@ -15,6 +15,7 @@ export default function Upload() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -54,12 +55,12 @@ export default function Upload() {
     };
   }, [files]);
 
-  // Ouvrir la caméra
+  // Ouvrir la caméra (getUserMedia: prévisualisation in-app, idéal iOS/Android)
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'environment', // Caméra arrière sur mobile
+          facingMode: 'environment', // Caméra arrière sur mobile (objet/inventaire)
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -74,11 +75,11 @@ export default function Upload() {
       }
     } catch (error) {
       console.error('Error accessing camera:', error);
-      // Fallback: utiliser l'input file avec capture
+      // Fallback: input file avec capture pour ouvrir la caméra native (iOS/Android)
       if (cameraInputRef.current) {
         cameraInputRef.current.click();
       } else {
-        alert('Impossible d\'accéder à la caméra. Veuillez autoriser l\'accès ou utiliser le bouton "Sélectionner des fichiers".');
+        alert('Impossible d\'accéder à la caméra. Veuillez autoriser l\'accès ou utiliser le bouton "Galerie".');
       }
     }
   };
@@ -117,16 +118,22 @@ export default function Upload() {
     setIsCameraOpen(false);
   };
 
-  // Gérer la sélection de fichiers depuis l'input camera (fallback mobile)
+  // Fichiers depuis l'input caméra (fallback quand getUserMedia échoue)
   const handleCameraFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (selectedFiles) {
       setFiles((prev) => [...prev, ...Array.from(selectedFiles)]);
     }
-    // Reset input pour permettre de sélectionner le même fichier
-    if (cameraInputRef.current) {
-      cameraInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+
+  // Fichiers depuis la galerie (sans capture → ouvre Photos / Gallery sur iOS et Android)
+  const handleGalleryFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = event.target.files;
+    if (selectedFiles) {
+      setFiles((prev) => [...prev, ...Array.from(selectedFiles)]);
     }
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
   const handleSubmit = async () => {
@@ -204,7 +211,7 @@ export default function Upload() {
         </div>
       </div>
 
-      {/* Boutons d'action rapide pour mobile */}
+      {/* Boutons d'action rapide pour mobile — caméra et galerie correctement séparés pour iOS/Android */}
       {isMobile && (
         <div className="flex gap-4 mb-6">
           <button
@@ -215,6 +222,7 @@ export default function Upload() {
             <FontAwesomeIcon icon={faCamera} className="mr-2" />
             Prendre une photo
           </button>
+          {/* Input caméra : capture="environment" pour ouvrir la caméra arrière (fallback si getUserMedia échoue) */}
           <input
             ref={cameraInputRef}
             type="file"
@@ -222,9 +230,20 @@ export default function Upload() {
             capture="environment"
             onChange={handleCameraFileSelect}
             className="hidden"
+            aria-hidden
+          />
+          {/* Input galerie : SANS capture pour ouvrir Photos / Gallery sur iOS et Android */}
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleGalleryFileSelect}
+            className="hidden"
+            multiple
+            aria-hidden
           />
           <button
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={() => galleryInputRef.current?.click()}
             className="btn btn-secondary flex-1"
           >
             <FontAwesomeIcon icon={faImage} className="mr-2" />
@@ -246,6 +265,7 @@ export default function Upload() {
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
                 className="w-full h-auto max-h-[60vh]"
               />
               <canvas ref={canvasRef} className="hidden" />

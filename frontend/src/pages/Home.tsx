@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileCsv } from '@fortawesome/free-solid-svg-icons';
+import { faFileCsv, faPlus } from '@fortawesome/free-solid-svg-icons';
 import { locationsApi } from '../services/api';
 import type { Location } from '../services/api';
 import LocationCard from '../components/LocationCard';
@@ -72,22 +72,28 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <h1 className="text-3xl font-bold">Mes lieux</h1>
-        {locations.length > 0 && (
-          <button
-            type="button"
-            className="btn btn-outline btn-primary"
-            onClick={handleExportCsv}
-            disabled={exporting}
-            title="Exporter l'inventaire en CSV pour votre assureur"
-          >
-            {exporting ? (
-              <span className="loading loading-spinner loading-sm" />
-            ) : (
-              <FontAwesomeIcon icon={faFileCsv} className="mr-2" />
-            )}
-            Exporter en CSV (assureur)
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/location/new" className="btn btn-primary">
+            <FontAwesomeIcon icon={faPlus} className="mr-2" />
+            Nouveau lieu
+          </a>
+          {locations.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-outline btn-primary"
+              onClick={handleExportCsv}
+              disabled={exporting}
+              title="Exporter l'inventaire en CSV pour votre assureur"
+            >
+              {exporting ? (
+                <span className="loading loading-spinner loading-sm" />
+              ) : (
+                <FontAwesomeIcon icon={faFileCsv} className="mr-2" />
+              )}
+              Exporter en CSV (assureur)
+            </button>
+          )}
+        </div>
       </div>
 
       {locations.length === 0 ? (

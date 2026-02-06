@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -6,6 +6,7 @@ import {
   faArrowLeft,
   faUpload,
   faImage,
+  faCamera,
   faTrash,
   faMagic,
   faBox,
@@ -68,6 +69,31 @@ export default function RoomDetail() {
     return () => clearInterval(t);
   }, [room?.analysisStatus, id]);
 
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const uploadRoomImages = async (files: File[]) => {
+    if (!id || files.length === 0) return;
+    const maxSize = 10 * 1024 * 1024;
+    const accepted = files.filter(
+      (f) => f.size <= maxSize && (f.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(f.name))
+    );
+    if (accepted.length === 0) {
+      alert('Fichiers non valides ou trop volumineux (max 10 Mo).');
+      return;
+    }
+    try {
+      setUploading(true);
+      await roomsApi.addImages(id, accepted);
+      loadRoom();
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Erreur lors de l\'ajout des photos');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp'] },
     maxSize: 10 * 1024 * 1024,
@@ -85,6 +111,21 @@ export default function RoomDetail() {
     },
     noClick: false,
   });
+
+  const handleCameraFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files?.length) {
+      uploadRoomImages(Array.from(files));
+    }
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
+  };
+  const handleGalleryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files?.length) {
+      uploadRoomImages(Array.from(files));
+    }
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+  };
 
   const handleDeleteImage = async (imageId: string) => {
     if (!id || !confirm('Supprimer cette photo ?')) return;
@@ -328,6 +369,48 @@ export default function RoomDetail() {
         </div>
       )}
 
+      {/* Mobile : Prendre une photo / Galerie (iOS & Android) */}
+      {isMobile && (
+        <div className="flex gap-4 mb-4">
+          <button
+            type="button"
+            className="btn btn-primary flex-1"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <FontAwesomeIcon icon={faCamera} className="mr-2" />
+            Prendre une photo
+          </button>
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleCameraFileSelect}
+            className="hidden"
+            aria-hidden
+          />
+          <input
+            ref={galleryInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleGalleryFileSelect}
+            className="hidden"
+            aria-hidden
+          />
+          <button
+            type="button"
+            className="btn btn-secondary flex-1"
+            onClick={() => galleryInputRef.current?.click()}
+            disabled={uploading}
+          >
+            <FontAwesomeIcon icon={faImage} className="mr-2" />
+            Galerie
+          </button>
+        </div>
+      )}
+
       {/* Ajouter des photos */}
       <div
         {...getRootProps()}
@@ -337,7 +420,7 @@ export default function RoomDetail() {
         <div className="card-body items-center justify-center min-h-[180px]">
           <FontAwesomeIcon icon={faUpload} className="text-4xl text-primary mb-2" />
           <p className="text-center text-base-content/70">
-            {isDragActive ? 'Déposez les images ici' : 'Glissez des photos ici ou cliquez pour sélectionner'}
+            {isDragActive ? 'Déposez les images ici' : isMobile ? 'Ou glissez des photos ici' : 'Glissez des photos ici ou cliquez pour sélectionner'}
           </p>
           {uploading && (
             <span className="loading loading-spinner loading-md mt-2" />

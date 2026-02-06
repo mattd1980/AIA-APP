@@ -19,19 +19,24 @@ L'application détecte automatiquement si l'utilisateur est sur un appareil mobi
 - Fonctionne sur tous les navigateurs modernes
 - **Caméra arrière** : `facingMode: 'environment'` (meilleure qualité pour les objets)
 
-#### 2. **Input File avec `capture`** (Fallback)
+#### 2. **Input File avec `capture="environment"`** (Fallback caméra)
 - Si `getUserMedia()` échoue ou n'est pas disponible
-- Utilise l'attribut HTML5 `capture="environment"`
-- Ouvre directement la caméra sur mobile
-- Plus simple mais moins de contrôle
+- Un seul `<input type="file" accept="image/*" capture="environment">` dédié au bouton « Prendre une photo »
+- Ouvre la **caméra arrière** sur iOS et Android (choix natif caméra)
+
+#### 3. **Input File sans `capture`** (Galerie)
+- Un **second** `<input type="file" accept="image/*">` **sans** attribut `capture` pour le bouton « Galerie »
+- Sur iOS : ouvre **Photos** (bibliothèque)
+- Sur Android : ouvre **Galerie / Fichiers**
+- Ne pas réutiliser le même input que la caméra, sinon certains appareils ouvrent la caméra au lieu de la galerie
 
 ---
 
 ## 🔧 Fonctionnalités
 
 ### Sur Mobile
-- **Bouton "Prendre une photo"** : Ouvre la caméra avec prévisualisation
-- **Bouton "Galerie"** : Accès à la galerie de photos
+- **Bouton "Prendre une photo"** : `getUserMedia` (prévisualisation in-app) ou fallback input avec `capture="environment"` → caméra arrière
+- **Bouton "Galerie"** : Input file **sans** `capture` → ouvre Photos (iOS) / Galerie (Android)
 - **Zone de drop** : Toujours disponible pour drag & drop (si supporté)
 
 ### Sur Desktop
@@ -90,12 +95,15 @@ L'application détecte automatiquement si l'utilisateur est sur un appareil mobi
 ### iOS (Safari)
 - Nécessite HTTPS (ou localhost en développement)
 - Demande permission utilisateur
-- Peut nécessiter un geste utilisateur (clic) pour activer
+- Geste utilisateur (clic sur bouton) requis pour `getUserMedia`
+- `<video>` doit avoir `playsInline` et `muted` pour que la prévisualisation fonctionne
+- Input avec `capture="environment"` ouvre la caméra ; input sans `capture` ouvre Photos
 
 ### Android (Chrome)
 - Nécessite HTTPS (ou localhost en développement)
 - Demande permission utilisateur
-- Supporte `facingMode: 'environment'` pour caméra arrière
+- `facingMode: 'environment'` pour caméra arrière
+- Input avec `capture="environment"` → caméra ; input sans `capture` → Galerie / Fichiers
 
 ### Desktop
 - Fonctionne avec webcam
@@ -128,7 +136,11 @@ L'application détecte automatiquement si l'utilisateur est sur un appareil mobi
 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 ```
 
-### Accès Caméra
+### Deux inputs distincts (mobile)
+- **Caméra** : `<input type="file" accept="image/*" capture="environment">` (un seul, dédié au bouton « Prendre une photo »).
+- **Galerie** : `<input type="file" accept="image/*" multiple>` **sans** `capture` (dédié au bouton « Galerie »).
+
+### Accès Caméra (getUserMedia)
 ```typescript
 const stream = await navigator.mediaDevices.getUserMedia({
   video: {
