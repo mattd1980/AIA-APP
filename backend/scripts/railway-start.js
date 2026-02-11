@@ -131,12 +131,26 @@ if (!DATABASE_URL) {
   execSync('npm start', { stdio: 'inherit' });
 } else {
   console.log('\n✅ DATABASE_URL found. Running migrations...\n');
-  try {
-    execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-    console.log('\n✅ Migrations completed. Starting server...\n');
-    execSync('npm start', { stdio: 'inherit' });
-  } catch (error) {
-    console.error('❌ Migration failed:', error.message);
-    process.exit(1);
+  const maxAttempts = 3;
+  const delayMs = 10_000;
+  let lastError;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      console.log('\n✅ Migrations completed. Starting server...\n');
+      execSync('npm start', { stdio: 'inherit' });
+      process.exit(0);
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Migration attempt ${attempt}/${maxAttempts} failed:`, error.message);
+      if (attempt < maxAttempts) {
+        console.log(`   Retrying in ${delayMs / 1000}s (DB may still be starting)...`);
+        const deadline = Date.now() + delayMs;
+        while (Date.now() < deadline) {}
+      }
+    }
   }
+  console.error('\n❌ All migration attempts failed. If using postgres.railway.internal, try the');
+  console.error('   public DATABASE_URL from PostgreSQL → Connect in Railway dashboard.\n');
+  process.exit(1);
 }
