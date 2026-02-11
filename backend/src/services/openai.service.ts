@@ -53,6 +53,7 @@ class OpenAIService {
       const modelId = resolveModel(model);
       const response = await openai.responses.create({
         model: modelId,
+        temperature: 0, // Reproducible results: same image → same detections across runs
         input: [
           {
             role: 'user',

@@ -62,7 +62,8 @@ class AnalysisService {
             },
           },
         });
-        const items = await openaiService.analyzeImage(image.imageData, image.imageType, model);
+        const imageBuffer = Buffer.from(image.imageData);
+        const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
           await prisma.roomDetectedItem.create({
             data: {
@@ -182,7 +183,8 @@ class AnalysisService {
             },
           },
         });
-        const items = await openaiService.analyzeImage(image.imageData, image.imageType, model);
+        const imageBuffer = Buffer.from(image.imageData);
+        const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
           await prisma.safeDetectedItem.create({
             data: {
