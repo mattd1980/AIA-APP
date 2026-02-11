@@ -20,7 +20,7 @@ if (process.env.DATABASE_URL) {
   process.env.DATABASE_URL = u;
 }
 
-console.log('🚀 Railway startup script starting...');
+console.log('🚀 Railway startup script starting...'); // redeploy
 console.log(`   Current directory: ${process.cwd()}`);
 console.log(`   __dirname: ${__dirname}`);
 
