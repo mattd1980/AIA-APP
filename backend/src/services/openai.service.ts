@@ -16,11 +16,13 @@ export const VISION_MODELS = [
   { id: 'gpt-4o', label: 'GPT-4o (alternatif)' },
 ] as const;
 
-const ALLOWED_IDS = new Set(VISION_MODELS.map((m) => m.id));
+export type VisionModelId = (typeof VISION_MODELS)[number]['id'];
 
-function resolveModel(userModel?: string | null): string {
-  if (userModel && ALLOWED_IDS.has(userModel)) return userModel;
-  return DEFAULT_VISION_MODEL;
+const ALLOWED_IDS = new Set<string>(VISION_MODELS.map((m) => m.id));
+
+function resolveModel(userModel?: string | null): VisionModelId {
+  if (userModel && ALLOWED_IDS.has(userModel)) return userModel as VisionModelId;
+  return DEFAULT_VISION_MODEL as VisionModelId;
 }
 
 class OpenAIService {
