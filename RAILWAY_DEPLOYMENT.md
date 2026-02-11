@@ -100,8 +100,9 @@ The app uses `postgres.railway.internal` (private network). If that fails or han
 
 1. **Use the public database URL**
    - Open your **PostgreSQL** service in Railway → **Variables** or **Connect**.
-   - Copy the **public** connection URL (host like `xxx.railway.app` or `roundhouse.proxy.rlwy.net`, **not** `postgres.railway.internal`).
+   - Copy the **public** connection URL (host like `xxx.railway.app` or `yamanote.proxy.rlwy.net`, **not** `postgres.railway.internal`).
    - In your **backend** service → **Variables**, set `DATABASE_URL` to that public URL (replace the existing one), then redeploy.
+   - The startup script automatically adds **`sslmode=require`** for public URLs (Railway’s public Postgres requires SSL).
 
 2. **Connection timeout**
    - The startup script adds `connect_timeout=10` to `DATABASE_URL` so the app fails after 10s instead of hanging. If you override `DATABASE_URL` manually, you can append `?connect_timeout=10` (or `&connect_timeout=10` if the URL already has `?`).

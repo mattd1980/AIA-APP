@@ -5,10 +5,18 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Fail fast on DB connect: add connect_timeout=10 so Prisma doesn't hang for minutes
-if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('connect_timeout')) {
-  const u = process.env.DATABASE_URL;
-  process.env.DATABASE_URL = u.includes('?') ? `${u}&connect_timeout=10` : `${u}?connect_timeout=10`;
+// Prepare DATABASE_URL for Railway: timeouts + SSL for public URL
+if (process.env.DATABASE_URL) {
+  let u = process.env.DATABASE_URL;
+  if (!u.includes('connect_timeout')) {
+    u = u.includes('?') ? `${u}&connect_timeout=10` : `${u}?connect_timeout=10`;
+  }
+  // Public Railway Postgres (proxy.rlwy.net / railway.app) requires SSL
+  const isPublicHost = /\.(proxy\.rlwy\.net|railway\.app)/.test(u) || u.includes('rlwy.net');
+  if (isPublicHost && !u.includes('sslmode=')) {
+    u = u.includes('?') ? `${u}&sslmode=require` : `${u}?sslmode=require`;
+  }
+  process.env.DATABASE_URL = u;
 }
 
 console.log('🚀 Railway startup script starting...');
