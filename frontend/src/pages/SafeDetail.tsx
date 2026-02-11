@@ -16,8 +16,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ImageWithBoundingBoxes from '@/components/ImageWithBoundingBoxes';
 import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
-import { safesApi } from '@/services/api';
-import type { Safe, SafeDetectedItem } from '@/services/api';
+import { safesApi, visionModelsApi } from '@/services/api';
+import type { Safe, SafeDetectedItem, VisionModel } from '@/services/api';
 import { SUGGESTED_OBJECTS } from '@/constants/suggestions';
 import { CATEGORY_LABELS as categoryLabels } from '@/constants/categories';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,8 @@ export default function SafeDetail() {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [itemEditForm, setItemEditForm] = useState<Partial<SafeDetectedItem>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
+  const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
+  const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
 
   const loadSafe = async (silent = false) => {
     if (!id) return;
@@ -67,6 +69,15 @@ export default function SafeDetail() {
   useEffect(() => {
     loadSafe();
   }, [id]);
+
+  useEffect(() => {
+    visionModelsApi.getList().then((list) => {
+      setVisionModels(list);
+      if (list.length > 0 && !list.some((m) => m.id === selectedVisionModel)) {
+        setSelectedVisionModel(list[0].id);
+      }
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!safe || safe.analysisStatus !== 'processing') return;
@@ -149,7 +160,7 @@ export default function SafeDetail() {
     if (!id || safe?.images.length === 0) return;
     try {
       setAnalyzing(true);
-      await safesApi.analyze(id);
+      await safesApi.analyze(id, selectedVisionModel);
       await loadSafe(true);
     } catch (err: any) {
       alert(err.response?.data?.error || 'Erreur lors du lancement de l\'analyse');
@@ -341,7 +352,24 @@ export default function SafeDetail() {
             {safe.location?.name && `Lieu : ${safe.location.name}`}
           </p>
           {images.length > 0 && (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>Modèle IA :</span>
+                <select
+                  className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-2 ring-transparent focus:ring-2 focus:ring-ring"
+                  value={selectedVisionModel}
+                  onChange={(e) => setSelectedVisionModel(e.target.value)}
+                  disabled={analyzing || safe.analysisStatus === 'processing'}
+                >
+                  {visionModels.length === 0 ? (
+                    <option value={selectedVisionModel}>—</option>
+                  ) : (
+                    visionModels.map((m) => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))
+                  )}
+                </select>
+              </label>
               <Button
                 type="button"
                 variant="secondary"

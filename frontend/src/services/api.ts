@@ -279,8 +279,8 @@ export const roomsApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/rooms/${id}`);
   },
-  analyze: async (roomId: string): Promise<{ message: string; status: string }> => {
-    const res = await api.post<{ message: string; status: string }>(`/api/rooms/${roomId}/analyze`);
+  analyze: async (roomId: string, model?: string): Promise<{ message: string; status: string }> => {
+    const res = await api.post<{ message: string; status: string }>(`/api/rooms/${roomId}/analyze`, model != null ? { model } : {});
     return res.data;
   },
   addItem: async (
@@ -328,8 +328,8 @@ export const safesApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/api/safes/${id}`);
   },
-  analyze: async (safeId: string): Promise<{ message: string; status: string }> => {
-    const res = await api.post<{ message: string; status: string }>(`/api/safes/${safeId}/analyze`);
+  analyze: async (safeId: string, model?: string): Promise<{ message: string; status: string }> => {
+    const res = await api.post<{ message: string; status: string }>(`/api/safes/${safeId}/analyze`, model != null ? { model } : {});
     return res.data;
   },
   addItem: async (
@@ -363,6 +363,15 @@ export const safesApi = {
   },
   getImageUrl: (safeId: string, imageId: string): string =>
     `${API_URL}/api/safes/${safeId}/images/${imageId}`,
+};
+
+export type VisionModel = { id: string; label: string };
+
+export const visionModelsApi = {
+  getList: async (): Promise<VisionModel[]> => {
+    const res = await api.get<VisionModel[]>('/api/vision-models');
+    return res.data;
+  },
 };
 
 export default api;

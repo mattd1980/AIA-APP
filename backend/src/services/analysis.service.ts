@@ -3,7 +3,7 @@ import { openaiService } from './openai.service';
 import { locationService } from './location.service';
 
 class AnalysisService {
-  async startRoomAnalysis(roomId: string, userId: string) {
+  async startRoomAnalysis(roomId: string, userId: string, model?: string | null) {
     await locationService.getRoomById(roomId, userId);
     const images = await prisma.roomImage.findMany({
       where: { roomId },
@@ -16,7 +16,7 @@ class AnalysisService {
       where: { id: roomId },
       data: { analysisStatus: 'processing', analysisMetadata: {} },
     });
-    this.processRoomAnalysis(roomId).catch((err) => {
+    this.processRoomAnalysis(roomId, model).catch((err) => {
       console.error(`[Room ${roomId}] Analysis error:`, err);
       prisma.room.update({
         where: { id: roomId },
@@ -28,7 +28,7 @@ class AnalysisService {
     });
   }
 
-  private async processRoomAnalysis(roomId: string) {
+  private async processRoomAnalysis(roomId: string, model?: string | null) {
     const images = await prisma.roomImage.findMany({
       where: { roomId },
       orderBy: { uploadOrder: 'asc' },
@@ -49,7 +49,7 @@ class AnalysisService {
             },
           },
         });
-        const items = await openaiService.analyzeImage(image.imageData, image.imageType);
+        const items = await openaiService.analyzeImage(image.imageData, image.imageType, model);
         for (const itemData of items) {
           await prisma.roomDetectedItem.create({
             data: {
@@ -97,7 +97,7 @@ class AnalysisService {
     });
   }
 
-  async startSafeAnalysis(safeId: string, userId: string) {
+  async startSafeAnalysis(safeId: string, userId: string, model?: string | null) {
     await locationService.getSafeById(safeId, userId);
     const images = await prisma.safeImage.findMany({
       where: { safeId },
@@ -110,7 +110,7 @@ class AnalysisService {
       where: { id: safeId },
       data: { analysisStatus: 'processing', analysisMetadata: {} },
     });
-    this.processSafeAnalysis(safeId).catch((err) => {
+    this.processSafeAnalysis(safeId, model).catch((err) => {
       console.error(`[Safe ${safeId}] Analysis error:`, err);
       prisma.safe.update({
         where: { id: safeId },
@@ -122,7 +122,7 @@ class AnalysisService {
     });
   }
 
-  private async processSafeAnalysis(safeId: string) {
+  private async processSafeAnalysis(safeId: string, model?: string | null) {
     const images = await prisma.safeImage.findMany({
       where: { safeId },
       orderBy: { uploadOrder: 'asc' },
@@ -143,7 +143,7 @@ class AnalysisService {
             },
           },
         });
-        const items = await openaiService.analyzeImage(image.imageData, image.imageType);
+        const items = await openaiService.analyzeImage(image.imageData, image.imageType, model);
         for (const itemData of items) {
           await prisma.safeDetectedItem.create({
             data: {

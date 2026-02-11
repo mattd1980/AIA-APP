@@ -127,7 +127,8 @@ router.delete('/:roomId/items/:itemId', requireAuth, async (req, res) => {
 router.post('/:roomId/analyze', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await analysisService.startRoomAnalysis(param(req.params.roomId), userId);
+    const model = (req.body as { model?: string })?.model;
+    await analysisService.startRoomAnalysis(param(req.params.roomId), userId, model);
     res.json({ message: 'Analyse lancée', status: 'processing' });
   } catch (error: any) {
     if (error.message === 'Room not found') {

@@ -14,6 +14,7 @@ import reportRoutes from './routes/reports';
 import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import exportRoutes from './routes/export';
+import visionRoutes from './routes/vision';
 
 dotenv.config();
 
@@ -88,6 +89,7 @@ app.use('/api/locations', locationRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/safes', safeRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/vision-models', visionRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build

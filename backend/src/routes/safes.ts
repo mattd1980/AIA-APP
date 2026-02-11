@@ -127,7 +127,8 @@ router.delete('/:safeId/items/:itemId', requireAuth, async (req, res) => {
 router.post('/:safeId/analyze', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
-    await analysisService.startSafeAnalysis(param(req.params.safeId), userId);
+    const model = (req.body as { model?: string })?.model;
+    await analysisService.startSafeAnalysis(param(req.params.safeId), userId, model);
     res.json({ message: 'Analyse lancée', status: 'processing' });
   } catch (error: any) {
     if (error.message === 'Safe not found') {

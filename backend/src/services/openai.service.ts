@@ -5,8 +5,26 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Default: gpt-5.2 (OpenAI flagship, image input, Responses API). Crème de la crème: gpt-5.2-pro. Cheaper: gpt-5-mini
+const DEFAULT_VISION_MODEL = process.env.OPENAI_VISION_MODEL || 'gpt-5.2';
+
+/** Vision models users can select (id = API model name) */
+export const VISION_MODELS = [
+  { id: 'gpt-5.2-pro', label: 'GPT-5.2 Pro (meilleure qualité, plus lent)' },
+  { id: 'gpt-5.2', label: 'GPT-5.2 (recommandé)' },
+  { id: 'gpt-5-mini', label: 'GPT-5 Mini (rapide, économique)' },
+  { id: 'gpt-4o', label: 'GPT-4o (alternatif)' },
+] as const;
+
+const ALLOWED_IDS = new Set(VISION_MODELS.map((m) => m.id));
+
+function resolveModel(userModel?: string | null): string {
+  if (userModel && ALLOWED_IDS.has(userModel)) return userModel;
+  return DEFAULT_VISION_MODEL;
+}
+
 class OpenAIService {
-  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg'): Promise<OpenAIItem[]> {
+  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg', model?: string | null): Promise<OpenAIItem[]> {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured');
     }
@@ -30,8 +48,9 @@ class OpenAIService {
       // Format base64 image as data URL
       const imageDataUrl = `data:${mimeType};base64,${base64Image}`;
 
+      const modelId = resolveModel(model);
       const response = await openai.responses.create({
-        model: 'gpt-5-mini', // Using GPT-5-mini for vision capabilities (cheaper/faster than gpt-5)
+        model: modelId,
         input: [
           {
             role: 'user',
