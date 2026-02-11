@@ -94,6 +94,21 @@ Update `FRONTEND_URL` in Railway variables with your actual frontend URL.
 
 ## Troubleshooting
 
+### "Can't reach database server" or "Attempting to connect to the database..." hangs
+
+The app uses `postgres.railway.internal` (private network). If that fails or hangs:
+
+1. **Use the public database URL**
+   - Open your **PostgreSQL** service in Railway → **Variables** or **Connect**.
+   - Copy the **public** connection URL (host like `xxx.railway.app` or `roundhouse.proxy.rlwy.net`, **not** `postgres.railway.internal`).
+   - In your **backend** service → **Variables**, set `DATABASE_URL` to that public URL (replace the existing one), then redeploy.
+
+2. **Connection timeout**
+   - The startup script adds `connect_timeout=10` to `DATABASE_URL` so the app fails after 10s instead of hanging. If you override `DATABASE_URL` manually, you can append `?connect_timeout=10` (or `&connect_timeout=10` if the URL already has `?`).
+
+3. **Health check**
+   - Set **Settings → Health Check → Path** to `/health`. The app returns 503 until the DB is reachable and times out after 10s so Railway doesn’t hang.
+
 ### Error: "Error creating build plan with Railpack"
 
 This error means Railway can't detect your project structure. Fix it by:
