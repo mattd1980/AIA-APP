@@ -3,21 +3,29 @@ import prisma from '../database/client';
 
 const router = Router();
 
+/** Liveness: process is up. No DB check. Use for basic "is the container running" probes. */
+router.get('/live', async (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+/**
+ * Readiness: app + DB. Railway uses this to decide when to switch traffic.
+ * Returns 503 until DB is reachable so deploy is not marked healthy until DB is up.
+ */
 router.get('/', async (req, res) => {
   try {
-    res.json({
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      services: {
-        database: 'ok',
-        openai: 'ok',
-      },
+      services: { database: 'ok', openai: 'ok' },
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(503).json({
       status: 'error',
-      error: 'Service indisponible',
+      error: 'Database unreachable',
+      details: error?.message ?? 'Service indisponible',
     });
   }
 });

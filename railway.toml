@@ -5,3 +5,5 @@ builder = "NIXPACKS"
 startCommand = "cd backend && npm run railway"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
+# Health: set in Dashboard → Service → Settings → Health Check → Path = /health
+# /health now checks DB (SELECT 1); returns 503 until DB is reachable so deploy waits for DB.
