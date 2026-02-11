@@ -95,11 +95,28 @@ model Room {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  location   Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  images     RoomImage[]
-  items      RoomDetectedItem[]
+  location     Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  images       RoomImage[]
+  items        RoomDetectedItem[]
+  analysisRuns RoomAnalysisRun[]
 
   @@index([locationId])
+}
+
+// Un run d'analyse = une exécution avec un modèle donné (pour comparer les modèles)
+model RoomAnalysisRun {
+  id                String         @id @default(uuid())
+  roomId            String
+  modelId           String         @db.VarChar(50)
+  status            AnalysisStatus @default(processing)
+  analysisMetadata  Json           @default("{}")
+  createdAt         DateTime       @default(now())
+
+  room  Room                @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  items RoomDetectedItem[]
+
+  @@index([roomId])
+  @@index([createdAt(sort: Desc)])
 }
 
 // Coffre-fort : appartient à un lieu, peut avoir plusieurs photos
@@ -112,11 +129,28 @@ model Safe {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  location   Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
-  images     SafeImage[]
-  items      SafeDetectedItem[]
+  location     Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  images       SafeImage[]
+  items        SafeDetectedItem[]
+  analysisRuns  SafeAnalysisRun[]
 
   @@index([locationId])
+}
+
+// Un run d'analyse = une exécution avec un modèle donné (pour comparer les modèles)
+model SafeAnalysisRun {
+  id                String         @id @default(uuid())
+  safeId            String
+  modelId           String         @db.VarChar(50)
+  status            AnalysisStatus @default(processing)
+  analysisMetadata  Json           @default("{}")
+  createdAt         DateTime       @default(now())
+
+  safe  Safe                  @relation(fields: [safeId], references: [id], onDelete: Cascade)
+  items SafeDetectedItem[]
+
+  @@index([safeId])
+  @@index([createdAt(sort: Desc)])
 }
 
 // Photo d'une pièce
@@ -138,26 +172,29 @@ model RoomImage {
 
 // Objet détecté par l'IA ou ajouté manuellement (roomImageId null = manuel)
 model RoomDetectedItem {
-  id                String        @id @default(uuid())
-  roomId            String
-  roomImageId       String?       // null = ajouté manuellement (suggestion assurance)
-  category          ItemCategory
-  itemName          String        @db.VarChar(255)
-  brand             String?       @db.VarChar(100)
-  model             String?       @db.VarChar(100)
-  condition         ItemCondition
-  estimatedAge      Int?
-  notes             String?       @db.Text
-  estimatedValue    Decimal       @default(0) @db.Decimal(10, 2)
-  replacementValue  Decimal       @default(0) @db.Decimal(10, 2)
-  aiAnalysis        Json          @default("{}")
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                 String             @id @default(uuid())
+  roomId             String
+  roomAnalysisRunId  String?            // null = ajouté manuellement ou ancienne analyse
+  roomImageId        String?            // null = ajouté manuellement (suggestion assurance)
+  category           ItemCategory
+  itemName           String             @db.VarChar(255)
+  brand              String?            @db.VarChar(100)
+  model              String?            @db.VarChar(100)
+  condition          ItemCondition
+  estimatedAge       Int?
+  notes              String?            @db.Text
+  estimatedValue     Decimal            @default(0) @db.Decimal(10, 2)
+  replacementValue   Decimal            @default(0) @db.Decimal(10, 2)
+  aiAnalysis         Json               @default("{}")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  roomImage RoomImage? @relation(fields: [roomImageId], references: [id], onDelete: Cascade)
+  room       Room               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  analysisRun RoomAnalysisRun?  @relation(fields: [roomAnalysisRunId], references: [id], onDelete: Cascade)
+  roomImage  RoomImage?         @relation(fields: [roomImageId], references: [id], onDelete: Cascade)
 
   @@index([roomId])
+  @@index([roomAnalysisRunId])
   @@index([roomImageId])
 }
 
@@ -180,26 +217,29 @@ model SafeImage {
 
 // Objet détecté par l'IA ou ajouté manuellement (safeImageId null = manuel)
 model SafeDetectedItem {
-  id                String        @id @default(uuid())
-  safeId            String
-  safeImageId       String?       // null = ajouté manuellement (suggestion assurance)
-  category          ItemCategory
-  itemName          String        @db.VarChar(255)
-  brand             String?       @db.VarChar(100)
-  model             String?       @db.VarChar(100)
-  condition         ItemCondition
-  estimatedAge      Int?
-  notes             String?       @db.Text
-  estimatedValue    Decimal       @default(0) @db.Decimal(10, 2)
-  replacementValue  Decimal       @default(0) @db.Decimal(10, 2)
-  aiAnalysis        Json          @default("{}")
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id                 String             @id @default(uuid())
+  safeId             String
+  safeAnalysisRunId  String?            // null = ajouté manuellement ou ancienne analyse
+  safeImageId        String?            // null = ajouté manuellement (suggestion assurance)
+  category           ItemCategory
+  itemName           String             @db.VarChar(255)
+  brand              String?            @db.VarChar(100)
+  model              String?            @db.VarChar(100)
+  condition          ItemCondition
+  estimatedAge       Int?
+  notes              String?            @db.Text
+  estimatedValue     Decimal            @default(0) @db.Decimal(10, 2)
+  replacementValue   Decimal            @default(0) @db.Decimal(10, 2)
+  aiAnalysis         Json               @default("{}")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 
-  safe      Safe       @relation(fields: [safeId], references: [id], onDelete: Cascade)
-  safeImage SafeImage? @relation(fields: [safeImageId], references: [id], onDelete: Cascade)
+  safe        Safe               @relation(fields: [safeId], references: [id], onDelete: Cascade)
+  analysisRun SafeAnalysisRun?   @relation(fields: [safeAnalysisRunId], references: [id], onDelete: Cascade)
+  safeImage   SafeImage?         @relation(fields: [safeImageId], references: [id], onDelete: Cascade)
 
   @@index([safeId])
+  @@index([safeAnalysisRunId])
   @@index([safeImageId])
 }
 

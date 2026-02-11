@@ -71,6 +71,10 @@ class LocationService {
         location: { select: { id: true, name: true } },
         images: { orderBy: { uploadOrder: 'asc' } },
         items: { orderBy: { createdAt: 'asc' } },
+        analysisRuns: {
+          orderBy: { createdAt: 'desc' },
+          include: { items: { orderBy: { createdAt: 'asc' } } },
+        },
       },
     });
     if (!room) throw new Error('Room not found');
@@ -184,6 +188,10 @@ class LocationService {
         location: { select: { id: true, name: true } },
         images: { orderBy: { uploadOrder: 'asc' } },
         items: { orderBy: { createdAt: 'asc' } },
+        analysisRuns: {
+          orderBy: { createdAt: 'desc' },
+          include: { items: { orderBy: { createdAt: 'asc' } } },
+        },
       },
     });
     if (!safe) throw new Error('Safe not found');

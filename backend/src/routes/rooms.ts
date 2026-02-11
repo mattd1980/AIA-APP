@@ -16,12 +16,33 @@ const upload = multer({
   },
 });
 
-// GET /api/rooms/:roomId - Détail pièce avec images (sans bytes) et objets détectés
+function serializeRoomItem(item: any) {
+  return {
+    id: item.id,
+    roomId: item.roomId,
+    roomImageId: item.roomImageId,
+    roomAnalysisRunId: item.roomAnalysisRunId ?? undefined,
+    category: item.category,
+    itemName: item.itemName,
+    brand: item.brand,
+    model: item.model,
+    condition: item.condition,
+    estimatedAge: item.estimatedAge,
+    notes: item.notes,
+    estimatedValue: Number(item.estimatedValue),
+    replacementValue: Number(item.replacementValue),
+    aiAnalysis: item.aiAnalysis,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+// GET /api/rooms/:roomId - Détail pièce avec images (sans bytes), objets et runs d'analyse par modèle
 router.get('/:roomId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
     const room = await locationService.getRoomById(param(req.params.roomId), userId);
-    const { images: roomImages, ...rest } = room as any;
+    const { images: roomImages, items: roomItems, analysisRuns: runs, ...rest } = room as any;
     const images = roomImages.map((img: any) => ({
       id: img.id,
       fileName: img.fileName,
@@ -29,24 +50,16 @@ router.get('/:roomId', requireAuth, async (req, res) => {
       uploadOrder: img.uploadOrder,
       createdAt: img.createdAt,
     }));
-    const items = (rest.items || []).map((item: any) => ({
-      id: item.id,
-      roomId: item.roomId,
-      roomImageId: item.roomImageId,
-      category: item.category,
-      itemName: item.itemName,
-      brand: item.brand,
-      model: item.model,
-      condition: item.condition,
-      estimatedAge: item.estimatedAge,
-      notes: item.notes,
-      estimatedValue: Number(item.estimatedValue),
-      replacementValue: Number(item.replacementValue),
-      aiAnalysis: item.aiAnalysis,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
+    const items = (roomItems || []).map(serializeRoomItem);
+    const analysisRuns = (runs || []).map((run: any) => ({
+      id: run.id,
+      modelId: run.modelId,
+      status: run.status,
+      analysisMetadata: run.analysisMetadata ?? {},
+      createdAt: run.createdAt,
+      items: (run.items || []).map(serializeRoomItem),
     }));
-    res.json({ ...rest, images, items });
+    res.json({ ...rest, images, items, analysisRuns });
   } catch (error: any) {
     if (error.message === 'Room not found') {
       return res.status(404).json({ error: 'Pièce introuvable' });

@@ -177,7 +177,8 @@ export type AnalysisStatus = 'idle' | 'processing' | 'completed' | 'error';
 export type RoomDetectedItem = {
   id: string;
   roomId: string;
-  roomImageId: string;
+  roomImageId?: string;
+  roomAnalysisRunId?: string;
   category: string;
   itemName: string;
   brand?: string;
@@ -195,7 +196,8 @@ export type RoomDetectedItem = {
 export type SafeDetectedItem = {
   id: string;
   safeId: string;
-  safeImageId: string;
+  safeImageId?: string;
+  safeAnalysisRunId?: string;
   category: string;
   itemName: string;
   brand?: string;
@@ -210,6 +212,24 @@ export type SafeDetectedItem = {
   updatedAt: string;
 };
 
+export type RoomAnalysisRun = {
+  id: string;
+  modelId: string;
+  status: AnalysisStatus;
+  analysisMetadata: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
+  createdAt: string;
+  items: RoomDetectedItem[];
+};
+
+export type SafeAnalysisRun = {
+  id: string;
+  modelId: string;
+  status: AnalysisStatus;
+  analysisMetadata: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
+  createdAt: string;
+  items: SafeDetectedItem[];
+};
+
 export type Room = {
   id: string;
   locationId: string;
@@ -219,6 +239,7 @@ export type Room = {
   location?: { id: string; name: string };
   images: Array<{ id: string; fileName: string; fileSize: number; uploadOrder: number; createdAt: string }>;
   items?: RoomDetectedItem[];
+  analysisRuns?: RoomAnalysisRun[];
 };
 
 export type Safe = {
@@ -230,6 +251,7 @@ export type Safe = {
   location?: { id: string; name: string };
   images: Array<{ id: string; fileName: string; fileSize: number; uploadOrder: number; createdAt: string }>;
   items?: SafeDetectedItem[];
+  analysisRuns?: SafeAnalysisRun[];
 };
 
 export const locationsApi = {

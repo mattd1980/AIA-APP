@@ -52,6 +52,7 @@ export default function RoomDetail() {
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
   const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
+  const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
 
   const loadRoom = async (silent = false) => {
     if (!id) return;
@@ -85,9 +86,50 @@ export default function RoomDetail() {
     return () => clearInterval(t);
   }, [room?.analysisStatus, id]);
 
+  // Default selected tab when room/analysisRuns load
+  useEffect(() => {
+    if (!room) return;
+    const runs = room.analysisRuns ?? [];
+    const manualItems = (room.items ?? []).filter((i: RoomDetectedItem) => !i.roomAnalysisRunId);
+    if (selectedRunId === null && runs.length > 0) {
+      setSelectedRunId(runs[0].id);
+    } else if (selectedRunId === null && manualItems.length > 0 && runs.length === 0) {
+      setSelectedRunId('manual');
+    } else if (selectedRunId === null && (room.items?.length ?? 0) > 0) {
+      setSelectedRunId('all');
+    }
+  }, [room?.id, room?.analysisRuns?.length, room?.items?.length]);
+
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  // Tabs: one per analysis run (model) + optional "Manual" tab for comparing results
+  const analysisRuns = room?.analysisRuns ?? [];
+  const manualItems = (room?.items ?? []).filter((i: RoomDetectedItem) => !i.roomAnalysisRunId);
+  const modelLabel = (modelId: string) => visionModels.find((m) => m.id === modelId)?.label ?? modelId;
+  const formatRunDate = (createdAt: string) =>
+    new Date(createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const tabs: { id: string; label: string; count: number }[] = [];
+  analysisRuns.forEach((run) => {
+    tabs.push({
+      id: run.id,
+      label: `${modelLabel(run.modelId)} – ${formatRunDate(run.createdAt)}`,
+      count: run.items?.length ?? 0,
+    });
+  });
+  if (manualItems.length > 0) {
+    tabs.push({ id: 'manual', label: 'Ajoutés manuellement', count: manualItems.length });
+  }
+  if (tabs.length === 0 && (room?.items?.length ?? 0) > 0) {
+    tabs.push({ id: 'all', label: 'Tous les objets', count: room!.items!.length });
+  }
+  const displayedItems: RoomDetectedItem[] =
+    selectedRunId === 'manual'
+      ? manualItems
+      : selectedRunId === 'all' || !selectedRunId
+        ? room?.items ?? []
+        : analysisRuns.find((r) => r.id === selectedRunId)?.items ?? [];
 
   const uploadRoomImages = async (files: File[]) => {
     if (!id || files.length === 0) return;
@@ -479,7 +521,7 @@ export default function RoomDetail() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {images.map((img) => {
-                const itemsInImage = (room.items ?? []).filter(
+                const itemsInImage = displayedItems.filter(
                   (item: RoomDetectedItem) =>
                     (item.roomImageId ?? (item.aiAnalysis as any)?.sourceImageId) === img.id && item.aiAnalysis?.boundingBox
                 );
@@ -561,18 +603,38 @@ export default function RoomDetail() {
         </CardContent>
       </Card>
 
-      {/* Objets détectés / inventaire */}
-      {room.items && room.items.length > 0 && (
+      {/* Objets détectés / inventaire – onglets par modèle pour comparer */}
+      {(room?.items?.length ?? 0) > 0 && (
         <Card className="mt-6 shadow-md">
           <CardHeader>
-            <CardTitle className="mb-4 flex items-center">
-              <FontAwesomeIcon icon={faBox} className="mr-2" />
-              Objets / inventaire ({room.items.length})
-            </CardTitle>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <CardTitle className="flex items-center">
+                <FontAwesomeIcon icon={faBox} className="mr-2" />
+                Objets / inventaire
+              </CardTitle>
+              {tabs.length > 1 && (
+                <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedRunId(tab.id)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        selectedRunId === tab.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {tab.label} ({tab.count})
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {room.items.map((item: RoomDetectedItem) => {
+              {displayedItems.map((item: RoomDetectedItem) => {
                 const sourceImageId = item.roomImageId ?? (item.aiAnalysis as any)?.sourceImageId;
                 const hasBox = item.aiAnalysis?.boundingBox;
                 const isEditing = editingItemId === item.id;

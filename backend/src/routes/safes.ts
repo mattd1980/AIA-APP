@@ -16,12 +16,33 @@ const upload = multer({
   },
 });
 
-// GET /api/safes/:safeId - Détail coffre avec images (sans bytes) et objets détectés
+function serializeSafeItem(item: any) {
+  return {
+    id: item.id,
+    safeId: item.safeId,
+    safeImageId: item.safeImageId,
+    safeAnalysisRunId: item.safeAnalysisRunId ?? undefined,
+    category: item.category,
+    itemName: item.itemName,
+    brand: item.brand,
+    model: item.model,
+    condition: item.condition,
+    estimatedAge: item.estimatedAge,
+    notes: item.notes,
+    estimatedValue: Number(item.estimatedValue),
+    replacementValue: Number(item.replacementValue),
+    aiAnalysis: item.aiAnalysis,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+// GET /api/safes/:safeId - Détail coffre avec images (sans bytes), objets et runs d'analyse par modèle
 router.get('/:safeId', requireAuth, async (req, res) => {
   try {
     const userId = (req as AuthenticatedRequest).user!.id;
     const safe = await locationService.getSafeById(param(req.params.safeId), userId);
-    const { images: safeImages, ...rest } = safe as any;
+    const { images: safeImages, items: safeItems, analysisRuns: runs, ...rest } = safe as any;
     const images = safeImages.map((img: any) => ({
       id: img.id,
       fileName: img.fileName,
@@ -29,24 +50,16 @@ router.get('/:safeId', requireAuth, async (req, res) => {
       uploadOrder: img.uploadOrder,
       createdAt: img.createdAt,
     }));
-    const items = (rest.items || []).map((item: any) => ({
-      id: item.id,
-      safeId: item.safeId,
-      safeImageId: item.safeImageId,
-      category: item.category,
-      itemName: item.itemName,
-      brand: item.brand,
-      model: item.model,
-      condition: item.condition,
-      estimatedAge: item.estimatedAge,
-      notes: item.notes,
-      estimatedValue: Number(item.estimatedValue),
-      replacementValue: Number(item.replacementValue),
-      aiAnalysis: item.aiAnalysis,
-      createdAt: item.createdAt,
-      updatedAt: item.updatedAt,
+    const items = (safeItems || []).map(serializeSafeItem);
+    const analysisRuns = (runs || []).map((run: any) => ({
+      id: run.id,
+      modelId: run.modelId,
+      status: run.status,
+      analysisMetadata: run.analysisMetadata ?? {},
+      createdAt: run.createdAt,
+      items: (run.items || []).map(serializeSafeItem),
     }));
-    res.json({ ...rest, images, items });
+    res.json({ ...rest, images, items, analysisRuns });
   } catch (error: any) {
     if (error.message === 'Safe not found') {
       return res.status(404).json({ error: 'Coffre introuvable' });

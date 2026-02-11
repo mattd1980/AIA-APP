@@ -12,13 +12,26 @@ class AnalysisService {
     if (images.length === 0) {
       throw new Error('Aucune photo dans cette pièce');
     }
+    const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
+    const run = await prisma.roomAnalysisRun.create({
+      data: {
+        roomId,
+        modelId,
+        status: 'processing',
+        analysisMetadata: {},
+      },
+    });
     await prisma.room.update({
       where: { id: roomId },
       data: { analysisStatus: 'processing', analysisMetadata: {} },
     });
-    this.processRoomAnalysis(roomId, model).catch((err) => {
+    this.processRoomAnalysis(roomId, model, run.id).catch(async (err) => {
       console.error(`[Room ${roomId}] Analysis error:`, err);
-      prisma.room.update({
+      await prisma.roomAnalysisRun.update({
+        where: { id: run.id },
+        data: { status: 'error', analysisMetadata: { error: (err as Error).message } },
+      });
+      await prisma.room.update({
         where: { id: roomId },
         data: {
           analysisStatus: 'error',
@@ -28,7 +41,7 @@ class AnalysisService {
     });
   }
 
-  private async processRoomAnalysis(roomId: string, model?: string | null) {
+  private async processRoomAnalysis(roomId: string, model: string | null | undefined, runId: string) {
     const images = await prisma.roomImage.findMany({
       where: { roomId },
       orderBy: { uploadOrder: 'asc' },
@@ -39,8 +52,8 @@ class AnalysisService {
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       try {
-        await prisma.room.update({
-          where: { id: roomId },
+        await prisma.roomAnalysisRun.update({
+          where: { id: runId },
           data: {
             analysisMetadata: {
               currentImage: i + 1,
@@ -54,6 +67,7 @@ class AnalysisService {
           await prisma.roomDetectedItem.create({
             data: {
               roomId,
+              roomAnalysisRunId: runId,
               roomImageId: image.id,
               category: itemData.category,
               itemName: itemData.name,
@@ -84,10 +98,22 @@ class AnalysisService {
       }
     }
 
+    const runStatus = errors.length === images.length ? 'error' : 'completed';
+    await prisma.roomAnalysisRun.update({
+      where: { id: runId },
+      data: {
+        status: runStatus,
+        analysisMetadata: {
+          processedImages: processed,
+          totalImages: images.length,
+          ...(errors.length > 0 && { errors }),
+        },
+      },
+    });
     await prisma.room.update({
       where: { id: roomId },
       data: {
-        analysisStatus: errors.length === images.length ? 'error' : 'completed',
+        analysisStatus: runStatus,
         analysisMetadata: {
           processedImages: processed,
           totalImages: images.length,
@@ -106,13 +132,26 @@ class AnalysisService {
     if (images.length === 0) {
       throw new Error('Aucune photo dans ce coffre');
     }
+    const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
+    const run = await prisma.safeAnalysisRun.create({
+      data: {
+        safeId,
+        modelId,
+        status: 'processing',
+        analysisMetadata: {},
+      },
+    });
     await prisma.safe.update({
       where: { id: safeId },
       data: { analysisStatus: 'processing', analysisMetadata: {} },
     });
-    this.processSafeAnalysis(safeId, model).catch((err) => {
+    this.processSafeAnalysis(safeId, model, run.id).catch(async (err) => {
       console.error(`[Safe ${safeId}] Analysis error:`, err);
-      prisma.safe.update({
+      await prisma.safeAnalysisRun.update({
+        where: { id: run.id },
+        data: { status: 'error', analysisMetadata: { error: (err as Error).message } },
+      });
+      await prisma.safe.update({
         where: { id: safeId },
         data: {
           analysisStatus: 'error',
@@ -122,7 +161,7 @@ class AnalysisService {
     });
   }
 
-  private async processSafeAnalysis(safeId: string, model?: string | null) {
+  private async processSafeAnalysis(safeId: string, model: string | null | undefined, runId: string) {
     const images = await prisma.safeImage.findMany({
       where: { safeId },
       orderBy: { uploadOrder: 'asc' },
@@ -133,8 +172,8 @@ class AnalysisService {
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
       try {
-        await prisma.safe.update({
-          where: { id: safeId },
+        await prisma.safeAnalysisRun.update({
+          where: { id: runId },
           data: {
             analysisMetadata: {
               currentImage: i + 1,
@@ -148,6 +187,7 @@ class AnalysisService {
           await prisma.safeDetectedItem.create({
             data: {
               safeId,
+              safeAnalysisRunId: runId,
               safeImageId: image.id,
               category: itemData.category,
               itemName: itemData.name,
@@ -178,10 +218,22 @@ class AnalysisService {
       }
     }
 
+    const runStatus = errors.length === images.length ? 'error' : 'completed';
+    await prisma.safeAnalysisRun.update({
+      where: { id: runId },
+      data: {
+        status: runStatus,
+        analysisMetadata: {
+          processedImages: processed,
+          totalImages: images.length,
+          ...(errors.length > 0 && { errors }),
+        },
+      },
+    });
     await prisma.safe.update({
       where: { id: safeId },
       data: {
-        analysisStatus: errors.length === images.length ? 'error' : 'completed',
+        analysisStatus: runStatus,
         analysisMetadata: {
           processedImages: processed,
           totalImages: images.length,

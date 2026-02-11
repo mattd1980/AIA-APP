@@ -52,6 +52,7 @@ export default function SafeDetail() {
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
   const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
+  const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
 
   const loadSafe = async (silent = false) => {
     if (!id) return;
@@ -85,9 +86,48 @@ export default function SafeDetail() {
     return () => clearInterval(t);
   }, [safe?.analysisStatus, id]);
 
+  useEffect(() => {
+    if (!safe) return;
+    const runs = safe.analysisRuns ?? [];
+    const manualItems = (safe.items ?? []).filter((i: SafeDetectedItem) => !i.safeAnalysisRunId);
+    if (selectedRunId === null && runs.length > 0) {
+      setSelectedRunId(runs[0].id);
+    } else if (selectedRunId === null && manualItems.length > 0 && runs.length === 0) {
+      setSelectedRunId('manual');
+    } else if (selectedRunId === null && (safe.items?.length ?? 0) > 0) {
+      setSelectedRunId('all');
+    }
+  }, [safe?.id, safe?.analysisRuns?.length, safe?.items?.length]);
+
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const analysisRuns = safe?.analysisRuns ?? [];
+  const manualItems = (safe?.items ?? []).filter((i: SafeDetectedItem) => !i.safeAnalysisRunId);
+  const modelLabel = (modelId: string) => visionModels.find((m) => m.id === modelId)?.label ?? modelId;
+  const formatRunDate = (createdAt: string) =>
+    new Date(createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+  const tabs: { id: string; label: string; count: number }[] = [];
+  analysisRuns.forEach((run) => {
+    tabs.push({
+      id: run.id,
+      label: `${modelLabel(run.modelId)} – ${formatRunDate(run.createdAt)}`,
+      count: run.items?.length ?? 0,
+    });
+  });
+  if (manualItems.length > 0) {
+    tabs.push({ id: 'manual', label: 'Ajoutés manuellement', count: manualItems.length });
+  }
+  if (tabs.length === 0 && (safe?.items?.length ?? 0) > 0) {
+    tabs.push({ id: 'all', label: 'Tous les objets', count: safe!.items!.length });
+  }
+  const displayedItems: SafeDetectedItem[] =
+    selectedRunId === 'manual'
+      ? manualItems
+      : selectedRunId === 'all' || !selectedRunId
+        ? safe?.items ?? []
+        : analysisRuns.find((r) => r.id === selectedRunId)?.items ?? [];
 
   const uploadSafeImages = async (files: File[]) => {
     if (!id || files.length === 0) return;
@@ -479,7 +519,7 @@ export default function SafeDetail() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {images.map((img) => {
-                const itemsInImage = (safe.items ?? []).filter(
+                const itemsInImage = displayedItems.filter(
                   (item: SafeDetectedItem) =>
                     (item.safeImageId ?? (item.aiAnalysis as any)?.sourceImageId) === img.id && item.aiAnalysis?.boundingBox
                 );
@@ -562,17 +602,37 @@ export default function SafeDetail() {
       </Card>
 
       {/* Objets détectés / inventaire */}
-      {safe.items && safe.items.length > 0 && (
+      {(safe?.items?.length ?? 0) > 0 && (
         <Card className="mt-6 shadow-md">
           <CardHeader>
-            <CardTitle className="mb-4 flex items-center">
-              <FontAwesomeIcon icon={faBox} className="mr-2" />
-              Objets / inventaire ({safe.items.length})
-            </CardTitle>
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <CardTitle className="flex items-center">
+                <FontAwesomeIcon icon={faBox} className="mr-2" />
+                Objets / inventaire
+              </CardTitle>
+              {tabs.length > 1 && (
+                <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                  {tabs.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setSelectedRunId(tab.id)}
+                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                        selectedRunId === tab.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {tab.label} ({tab.count})
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {safe.items.map((item: SafeDetectedItem) => {
+              {displayedItems.map((item: SafeDetectedItem) => {
                 const sourceImageId = item.safeImageId ?? (item.aiAnalysis as any)?.sourceImageId;
                 const hasBox = item.aiAnalysis?.boundingBox;
                 const isEditing = editingItemId === item.id;
