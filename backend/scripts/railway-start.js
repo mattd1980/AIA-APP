@@ -15,6 +15,7 @@ if (process.env.DATABASE_URL) {
   const isPublicHost = /\.(proxy\.rlwy\.net|railway\.app)/.test(u) || u.includes('rlwy.net');
   if (isPublicHost && !u.includes('sslmode=')) {
     u = u.includes('?') ? `${u}&sslmode=require` : `${u}?sslmode=require`;
+    console.log('   (Added sslmode=require for public Postgres URL)');
   }
   process.env.DATABASE_URL = u;
 }

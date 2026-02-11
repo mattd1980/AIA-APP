@@ -1,5 +1,7 @@
 [variables]
+# Pin Node 20 (Vite 7 / frontend requires 20.19+)
 NODE_VERSION = "20"
+NIXPACKS_NODE_VERSION = "20"
 
 [phases.setup]
 nixPkgs = ["nodejs"]

@@ -4,7 +4,7 @@
   "description": "Backend API for AIA Inventory App",
   "main": "dist/server.js",
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
   "scripts": {

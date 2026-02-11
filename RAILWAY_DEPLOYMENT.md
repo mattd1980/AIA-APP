@@ -20,7 +20,11 @@ This guide will help you deploy the AIA-APP backend to Railway.
 6. In "Settings" → "Source", set the **Root Directory** to: `backend`
 7. This tells Railway to use the `backend` folder as the project root
 
-### 2. Add PostgreSQL Database ⚠️ REQUIRED
+### 2. (Optional) Force Node 20
+
+If the build uses Node 18 and you see "Vite requires Node.js 20.19+", add a variable in your **backend** service: **`NIXPACKS_NODE_VERSION`** = **`20`**. The repo also has `.nvmrc` and `engines` set for Node 20.
+
+### 3. Add PostgreSQL Database ⚠️ REQUIRED
 
 **IMPORTANT:** You MUST add a PostgreSQL database before the app can start!
 
@@ -38,7 +42,7 @@ This guide will help you deploy the AIA-APP backend to Railway.
 - Make sure the database service is in the same Railway project
 - The `DATABASE_URL` should appear automatically in your backend service's variables
 
-### 3. Configure Environment Variables
+### 4. Configure Environment Variables
 
 In Railway dashboard, go to your service → "Variables" and add:
 
@@ -59,7 +63,7 @@ FRONTEND_URL=https://your-frontend.vercel.app
 # Or for development: FRONTEND_URL=*
 ```
 
-### 4. Deploy
+### 5. Deploy
 
 Railway will automatically:
 1. Detect the Node.js project
@@ -68,13 +72,13 @@ Railway will automatically:
 4. Run `npm run postinstall` (generates Prisma client)
 5. Run `npm run railway` (runs migrations + starts server)
 
-### 5. Get Your Backend URL
+### 6. Get Your Backend URL
 
 1. In Railway dashboard, go to your service
 2. Click on "Settings" → "Generate Domain"
 3. Copy the generated URL (e.g., `https://ia.heliacode.com`)
 
-### 6. Update Frontend Environment
+### 7. Update Frontend Environment
 
 After getting your Railway backend URL:
 
@@ -82,7 +86,7 @@ After getting your Railway backend URL:
 2. Set environment variable: `VITE_API_URL=https://ia.heliacode.com`
 3. Redeploy frontend
 
-### 7. Update CORS in Backend
+### 8. Update CORS in Backend
 
 Update `FRONTEND_URL` in Railway variables with your actual frontend URL.
 
@@ -109,6 +113,10 @@ The app uses `postgres.railway.internal` (private network). If that fails or han
 
 3. **Health check**
    - Set **Settings → Health Check → Path** to `/health`. The app returns 503 until the DB is reachable and times out after 10s so Railway doesn’t hang.
+
+4. **If public URL still fails (P1001)**
+   - Confirm the **PostgreSQL** service is **Running** (green) in the dashboard.
+   - From your **local machine**, run: `DATABASE_URL="<paste public URL with ?sslmode=require>" npx prisma migrate deploy` (from the repo root, with `backend` as cwd or set path). If that works, the DB is reachable and the issue may be Railway’s in-app network; try the **internal** URL again once the DB is stable, or contact Railway support.
 
 ### Error: "Error creating build plan with Railpack"
 
