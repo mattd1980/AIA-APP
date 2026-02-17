@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { OpenAIItem, ItemCategory } from '../types';
+import { VisionItem, ItemCategory } from '../types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -34,7 +34,7 @@ function resolveModel(userModel?: string | null): VisionModelId {
 }
 
 class OpenAIService {
-  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg', model?: string | null): Promise<OpenAIItem[]> {
+  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg', model?: string | null): Promise<VisionItem[]> {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured');
     }

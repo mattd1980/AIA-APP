@@ -55,7 +55,7 @@ export interface BoundingBox {
   height: number; // Normalized height (0-1)
 }
 
-export interface OpenAIItem {
+export interface VisionItem {
   name: string;
   category: ItemCategory;
   brand?: string;
@@ -65,3 +65,6 @@ export interface OpenAIItem {
   description: string;
   boundingBox?: BoundingBox; // Normalized coordinates (0-1 range)
 }
+
+/** @deprecated Use VisionItem instead */
+export type OpenAIItem = VisionItem;

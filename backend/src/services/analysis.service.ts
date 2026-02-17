@@ -1,9 +1,14 @@
 import prisma from '../database/client';
 import { Prisma } from '@prisma/client';
 import { openaiService } from './openai.service';
+import { geminiService } from './gemini.service';
 import { locationService } from './location.service';
 import { pricingService } from './pricing.service';
 import type { PricingInput } from './pricing.service';
+
+function isGeminiModel(modelId: string): boolean {
+  return modelId.startsWith('gemini-');
+}
 
 class AnalysisService {
   async startRoomAnalysis(roomId: string, userId: string, model?: string | null) {
@@ -67,7 +72,9 @@ class AnalysisService {
           },
         });
         const imageBuffer = Buffer.from(image.imageData);
-        const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
+        const items = isGeminiModel(model || '')
+          ? await geminiService.analyzeImage(imageBuffer, image.imageType, model)
+          : await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
           const aiAnalysis: Prisma.InputJsonObject = {
             description: itemData.description,
@@ -229,7 +236,9 @@ class AnalysisService {
           },
         });
         const imageBuffer = Buffer.from(image.imageData);
-        const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
+        const items = isGeminiModel(model || '')
+          ? await geminiService.analyzeImage(imageBuffer, image.imageType, model)
+          : await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
           const aiAnalysis: Prisma.InputJsonObject = {
             description: itemData.description,
