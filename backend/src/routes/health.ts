@@ -44,32 +44,14 @@ router.get('/db', async (req, res) => {
     await prisma.$queryRaw`SELECT 1`;
     const responseTime = Date.now() - start;
 
-    const [inventories, items, images] = await Promise.all([
-      prisma.inventory.count(),
-      prisma.inventoryItem.count(),
-      prisma.inventoryImage.count(),
-    ]);
-
     res.json({
       status: 'ok',
       responseTime,
-      connections: {
-        active: 0, // Prisma doesn't expose this easily
-        idle: 0,
-        max: 20,
-      },
-      database: {
-        tables: {
-          inventories,
-          inventory_items: items,
-          inventory_images: images,
-        },
-      },
     });
   } catch (error: any) {
     res.status(503).json({
       status: 'error',
-      error: error.message,
+      error: 'Database unreachable',
     });
   }
 });

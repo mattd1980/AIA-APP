@@ -24,8 +24,11 @@ router.post('/users', async (req: Request, res: Response) => {
     if (!email || typeof email !== 'string') {
       return res.status(400).json({ error: 'Email requis' });
     }
-    if (!password || typeof password !== 'string' || password.length < 6) {
-      return res.status(400).json({ error: 'Mot de passe requis (min. 6 caractères)' });
+    if (!password || typeof password !== 'string' || password.length < 8 ||
+        !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+      return res.status(400).json({
+        error: 'Mot de passe requis (min. 8 caractères, 1 majuscule, 1 chiffre, 1 caractère spécial)',
+      });
     }
     const user = await authService.createUserWithPassword({
       email: email.trim(),

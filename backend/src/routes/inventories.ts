@@ -113,7 +113,7 @@ router.get('/:id/images/:imageId', requireAuth, async (req, res) => {
     }
 
     res.setHeader('Content-Type', image.imageType);
-    res.setHeader('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    res.setHeader('Cache-Control', 'private, max-age=31536000');
     res.send(image.imageData);
   } catch (error: any) {
     console.error('Error fetching image:', error);

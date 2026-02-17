@@ -21,8 +21,7 @@ export default function Home() {
       setLoading(true);
       const list = await locationsApi.list();
       setLocations(list);
-    } catch (error) {
-      console.error('Erreur chargement des lieux:', error);
+    } catch {
       setLocations([]);
     } finally {
       setLoading(false);
@@ -36,8 +35,7 @@ export default function Home() {
     try {
       await locationsApi.delete(id);
       loadLocations();
-    } catch (error) {
-      console.error('Erreur lors de la suppression:', error);
+    } catch {
       alert('Erreur lors de la suppression');
     }
   };
@@ -52,8 +50,7 @@ export default function Home() {
       a.download = `inventaire-assurance-${new Date().toISOString().slice(0, 10)}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Erreur export CSV:', err);
+    } catch {
       alert('Erreur lors de l\'export. Réessayez.');
     } finally {
       setExporting(false);

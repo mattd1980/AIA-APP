@@ -11,6 +11,16 @@ export default defineConfig({
   server: {
     hmr: {
       overlay: true
-    }
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+      '/health': {
+        target: 'http://localhost:3002',
+        changeOrigin: true,
+      },
+    },
   }
 })

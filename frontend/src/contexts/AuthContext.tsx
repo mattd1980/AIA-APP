@@ -33,10 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error: any) {
       // User is not authenticated, which is fine
       setUser(null);
-      // Only log if it's not a 401 (unauthorized)
-      if (error.response?.status !== 401) {
-        console.error('Auth check error:', error);
-      }
+      // 401 is expected when not authenticated — ignore silently
     } finally {
       setLoading(false);
     }
@@ -47,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await api.post('/api/auth/logout', {});
       setUser(null);
       window.location.href = '/login';
-    } catch (error) {
-      console.error('Error logging out:', error);
+    } catch {
+      // Logout failed — redirect anyway
     }
   };
 

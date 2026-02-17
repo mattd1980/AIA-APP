@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import path from 'path';
 import { existsSync } from 'fs';
@@ -15,39 +17,24 @@ import authRoutes from './routes/auth';
 import adminRoutes from './routes/admin';
 import exportRoutes from './routes/export';
 import visionRoutes from './routes/vision';
+import pricingRoutes from './routes/pricing';
 
 dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 
+// Fail fast if SESSION_SECRET is missing in production
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: SESSION_SECRET environment variable is required in production');
+  process.exit(1);
+}
+
 // Railway/Reverse-proxy support (required for secure cookies behind proxy)
 // https://expressjs.com/en/guide/behind-proxies.html
 app.set('trust proxy', 1);
 
-// Session configuration
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      // Use secure cookies in production (HTTPS)
-      secure: process.env.NODE_ENV === 'production',
-      httpOnly: true,
-      // If frontend is on a different Railway domain, cookies are cross-site:
-      // requires SameSite=None + Secure or the browser will drop the session cookie.
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    },
-  })
-);
-
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Middleware
+// CORS — must be first so preflight OPTIONS always gets proper headers
 // FRONTEND_URL can be:
 // - exact origin: https://ia.heliacode.com
 // - "*" to allow any origin (reflected) (useful during setup)
@@ -74,11 +61,64 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-// Ensure preflight requests are handled with the same options
 app.options('*', cors(corsOptions));
+
+// Security headers (relaxed for cross-origin API usage)
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: false,
+  contentSecurityPolicy: false, // CSP managed by frontend meta tags / deployment
+}));
+
+// Session configuration
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'dev-only-secret-not-for-production',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      // Use secure cookies in production (HTTPS)
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      // If frontend is on a different Railway domain, cookies are cross-site:
+      // requires SameSite=None + Secure or the browser will drop the session cookie.
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    },
+  })
+);
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Rate limiting (skip OPTIONS preflight requests)
+const skipOptions = (req: express.Request) => req.method === 'OPTIONS';
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Trop de tentatives de connexion, veuillez réessayer dans 15 minutes' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipOptions,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { error: 'Trop de requêtes, veuillez réessayer plus tard' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipOptions,
+});
+
+app.use('/api/auth/login', authLimiter);
+app.use('/api/admin/login', authLimiter);
+app.use('/api/', apiLimiter);
 
 // API Routes (must come before static files)
 app.use('/api/auth', authRoutes);
@@ -90,6 +130,7 @@ app.use('/api/rooms', roomRoutes);
 app.use('/api/safes', safeRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/vision-models', visionRoutes);
+app.use('/api/pricing', pricingRoutes);
 app.use('/health', healthRoutes);
 
 // Serve static files from frontend build
@@ -158,15 +199,10 @@ app.get('*', (req, res) => {
   }
   
   // Fallback: return API info if frontend not built
-  res.json({ 
-    message: 'AIA Backend API', 
+  res.json({
+    message: 'AIA Backend API',
     version: '1.0.0',
     note: 'Frontend not found. Make sure frontend is built during deployment.',
-    debug: {
-      cwd: process.cwd(),
-      __dirname: __dirname,
-      checkedPaths: possiblePaths.map(p => ({ path: p, exists: existsSync(p) }))
-    }
   });
 });
 

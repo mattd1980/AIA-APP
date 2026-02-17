@@ -1,10 +1,8 @@
 import axios from 'axios';
 
 // In production: use VITE_API_URL when set (frontend and backend on different origins, e.g. two Railway services).
-// Otherwise same-origin (backend serves frontend). In dev we hit the backend directly.
-const API_URL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '' : 'http://localhost:3000');
+// Otherwise same-origin (backend serves frontend, or Vite proxy in dev).
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -336,6 +334,30 @@ export const roomsApi = {
   },
   getImageUrl: (roomId: string, imageId: string): string =>
     `${API_URL}/api/rooms/${roomId}/images/${imageId}`,
+  reEstimatePrices: async (roomId: string): Promise<{ updated: number }> => {
+    const room = await roomsApi.getById(roomId);
+    const items = room.items ?? [];
+    if (items.length === 0) return { updated: 0 };
+    const inputs = items.map((i) => ({
+      itemName: i.itemName,
+      brand: i.brand,
+      model: i.model,
+      category: i.category,
+    }));
+    const { results } = await pricingApi.estimatePrices(inputs);
+    let updated = 0;
+    for (let idx = 0; idx < items.length; idx++) {
+      const pricing = results[idx];
+      if (pricing && pricing.estimatedValue > 0) {
+        await roomsApi.updateItem(roomId, items[idx].id, {
+          estimatedValue: pricing.estimatedValue,
+          replacementValue: pricing.replacementValue,
+        });
+        updated++;
+      }
+    }
+    return { updated };
+  },
 };
 
 export const safesApi = {
@@ -385,6 +407,59 @@ export const safesApi = {
   },
   getImageUrl: (safeId: string, imageId: string): string =>
     `${API_URL}/api/safes/${safeId}/images/${imageId}`,
+  reEstimatePrices: async (safeId: string): Promise<{ updated: number }> => {
+    const safe = await safesApi.getById(safeId);
+    const items = safe.items ?? [];
+    if (items.length === 0) return { updated: 0 };
+    const inputs = items.map((i) => ({
+      itemName: i.itemName,
+      brand: i.brand,
+      model: i.model,
+      category: i.category,
+    }));
+    const { results } = await pricingApi.estimatePrices(inputs);
+    let updated = 0;
+    for (let idx = 0; idx < items.length; idx++) {
+      const pricing = results[idx];
+      if (pricing && pricing.estimatedValue > 0) {
+        await safesApi.updateItem(safeId, items[idx].id, {
+          estimatedValue: pricing.estimatedValue,
+          replacementValue: pricing.replacementValue,
+        });
+        updated++;
+      }
+    }
+    return { updated };
+  },
+};
+
+export type PricingEstimateInput = {
+  itemName: string;
+  brand?: string;
+  model?: string;
+  category?: string;
+};
+
+export type PricingMetadata = {
+  pricingSource: 'dataforseo' | 'none';
+  medianPrice: number;
+  sampleCount: number;
+  searchQuery: string;
+  priceRange: { min: number; max: number };
+  estimatedAt: string;
+};
+
+export type PricingEstimateResult = {
+  estimatedValue: number;
+  replacementValue: number;
+  pricingMetadata: PricingMetadata | null;
+};
+
+export const pricingApi = {
+  estimatePrices: async (items: PricingEstimateInput[]): Promise<{ results: PricingEstimateResult[] }> => {
+    const res = await api.post<{ results: PricingEstimateResult[] }>('/api/pricing/estimate', { items });
+    return res.data;
+  },
 };
 
 export type VisionModel = { id: string; label: string };

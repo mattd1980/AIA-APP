@@ -78,8 +78,7 @@ export default function Upload() {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
       }
-    } catch (error) {
-      console.error('Error accessing camera:', error);
+    } catch {
       // Fallback: input file avec capture pour ouvrir la caméra native (iOS/Android)
       if (cameraInputRef.current) {
         cameraInputRef.current.click();
@@ -151,9 +150,8 @@ export default function Upload() {
       setUploading(true);
       const inventory = await inventoryApi.create(files, inventoryName || undefined);
       navigate(`/inventory/${inventory.id}`);
-    } catch (error: any) {
-      console.error('Error uploading:', error);
-      alert('Erreur lors de l\'upload: ' + (error.message || 'Erreur inconnue'));
+    } catch {
+      alert('Erreur lors de l\'upload. Veuillez réessayer.');
     } finally {
       setUploading(false);
     }

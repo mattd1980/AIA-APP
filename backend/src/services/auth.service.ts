@@ -97,10 +97,19 @@ export class AuthService {
   async validateAdminPassword(password: string): Promise<boolean> {
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
-      console.warn('⚠️  ADMIN_PASSWORD not set in environment variables');
+      console.warn('ADMIN_PASSWORD not set in environment variables');
       return false;
     }
-    return password === adminPassword;
+    // Support both bcrypt-hashed and plaintext ADMIN_PASSWORD values.
+    // If the env var looks like a bcrypt hash, compare with bcrypt;
+    // otherwise fall back to constant-time comparison via bcrypt by
+    // hashing at runtime.
+    if (adminPassword.startsWith('$2')) {
+      return bcrypt.compare(password, adminPassword);
+    }
+    // Plaintext env var: hash it and compare to avoid timing attacks
+    const hash = await bcrypt.hash(adminPassword, SALT_ROUNDS);
+    return bcrypt.compare(password, hash);
   }
 
   /** Authenticate by email + password: admin (admin@local + ADMIN_PASSWORD) or regular user (passwordHash). */

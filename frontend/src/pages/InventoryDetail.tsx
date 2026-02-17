@@ -60,8 +60,7 @@ export default function InventoryDetail() {
       const data = await inventoryApi.getById(id);
       setInventory(data);
       setInventoryName(data.name || '');
-    } catch (error) {
-      console.error('Error loading inventory:', error);
+    } catch {
       // Only show alert on initial load, not during polling
       if (showLoading) {
         alert('Erreur lors du chargement de l\'inventaire');
@@ -80,8 +79,7 @@ export default function InventoryDetail() {
       await inventoryApi.update(id, { name: inventoryName || undefined });
       setEditingName(false);
       loadInventory(false);
-    } catch (error) {
-      console.error('Error updating inventory name:', error);
+    } catch {
       alert('Erreur lors de la mise à jour du nom');
     } finally {
       setSavingName(false);
@@ -97,8 +95,7 @@ export default function InventoryDetail() {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error) {
-      console.error('Error adding images:', error);
+    } catch {
       alert('Erreur lors de l\'ajout des images');
     } finally {
       setAddingImages(false);
@@ -117,8 +114,7 @@ export default function InventoryDetail() {
       a.download = `inventory-report-${id}.pdf`;
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error generating report:', error);
+    } catch {
       alert('Erreur lors de la génération du rapport');
     } finally {
       setGeneratingReport(false);

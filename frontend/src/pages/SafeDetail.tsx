@@ -13,11 +13,13 @@ import {
   faPen,
   faCheck,
   faTimes,
+  faDollarSign,
 } from '@fortawesome/free-solid-svg-icons';
 import ImageWithBoundingBoxes from '@/components/ImageWithBoundingBoxes';
 import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
 import { safesApi, visionModelsApi } from '@/services/api';
 import type { Safe, SafeDetectedItem, VisionModel } from '@/services/api';
+import { usePriceEstimation } from '@/hooks/use-price-estimation';
 import { SUGGESTED_OBJECTS } from '@/constants/suggestions';
 import { CATEGORY_LABELS as categoryLabels } from '@/constants/categories';
 import { Button } from '@/components/ui/button';
@@ -53,6 +55,11 @@ export default function SafeDetail() {
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
   const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
   const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
+  const { estimating, error: pricingError, estimate: handleEstimatePrices } = usePriceEstimation(
+    id,
+    'safe',
+    () => loadSafe(true)
+  );
 
   const loadSafe = async (silent = false) => {
     if (!id) return;
@@ -610,6 +617,24 @@ export default function SafeDetail() {
                 <FontAwesomeIcon icon={faBox} className="mr-2" />
                 Objets / inventaire
               </CardTitle>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleEstimatePrices}
+                disabled={estimating}
+                title="Estimer les prix via Google Shopping"
+              >
+                {estimating ? (
+                  <Spinner className="mr-2 size-4" />
+                ) : (
+                  <FontAwesomeIcon icon={faDollarSign} className="mr-2" />
+                )}
+                {estimating ? 'Estimation...' : 'Estimer les prix'}
+              </Button>
+              {pricingError && (
+                <span className="text-sm text-destructive">{pricingError}</span>
+              )}
               {tabs.length > 1 && (
                 <div className="flex flex-wrap gap-1 rounded-lg border border-border bg-muted/30 p-1">
                   {tabs.map((tab) => (
@@ -771,9 +796,21 @@ export default function SafeDetail() {
                             {item.aiAnalysis?.description && (
                               <p className="mt-1 line-clamp-3 text-sm text-muted-foreground">{item.aiAnalysis.description}</p>
                             )}
-                            <div className="mt-2 flex gap-2 text-sm">
+                            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                               <span className="font-semibold text-primary">{Number(item.estimatedValue).toFixed(2)} $</span>
                               <span className="text-muted-foreground">remplacement : {Number(item.replacementValue).toFixed(2)} $</span>
+                              {Boolean((item.aiAnalysis as Record<string, unknown>)?.pricing) && (() => {
+                                const pricing = (item.aiAnalysis as Record<string, unknown>).pricing as Record<string, unknown>;
+                                return (
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
+                                    title={`Source: Google Shopping | ${String(pricing.sampleCount)} résultat(s) | Recherche: ${String(pricing.searchQuery)}`}
+                                  >
+                                    <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
+                                    estimé
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>

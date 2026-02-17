@@ -1,128 +1,129 @@
-interface PriceData {
-  source: string;
+import { dataForSeoService } from './dataforseo.service';
+import type { ShoppingResult } from './dataforseo.service';
+
+export interface PricingInput {
+  itemName: string;
+  brand?: string;
+  model?: string;
+  category?: string;
+}
+
+export interface PricingMetadata {
+  pricingSource: 'dataforseo' | 'none';
+  medianPrice: number;
+  sampleCount: number;
   searchQuery: string;
-  prices: Array<{
-    retailer: string;
-    price: number;
-    currency: string;
-    url?: string;
-  }>;
-  averagePrice: number;
-  currency: string;
-  retrievedAt: string;
+  priceRange: { min: number; max: number };
+  estimatedAt: string;
+}
+
+export interface PricingResult {
+  estimatedValue: number;
+  replacementValue: number;
+  pricingMetadata: PricingMetadata | null;
+}
+
+const REPLACEMENT_BUFFER = parseFloat(process.env.INSURANCE_REPLACEMENT_BUFFER ?? '1.3');
+const INTER_REQUEST_DELAY_MS = 200;
+
+export function buildSearchQuery(item: PricingInput): string {
+  const parts: string[] = [];
+  if (item.itemName) parts.push(`"${item.itemName}"`);
+  if (item.brand) parts.push(`"${item.brand}"`);
+  if (item.model) parts.push(`"${item.model}"`);
+  return parts.join(' ');
+}
+
+export function computeMedian(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[mid - 1] + sorted[mid]) / 2
+    : sorted[mid];
+}
+
+export function filterOutliers(prices: number[]): number[] {
+  if (prices.length < 3) return prices;
+  const initialMedian = computeMedian(prices);
+  if (initialMedian === 0) return prices;
+  const filtered = prices.filter(
+    (p) => p >= initialMedian * 0.5 && p <= initialMedian * 2.0
+  );
+  return filtered.length > 0 ? filtered : prices;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 class PricingService {
-  // Category-based price ranges (in CAD)
-  private categoryPriceRanges: Record<string, { min: number; max: number; typical: number }> = {
-    furniture: { min: 200, max: 5000, typical: 800 },
-    electronics: { min: 50, max: 3000, typical: 400 },
-    clothing: { min: 20, max: 500, typical: 80 },
-    appliances: { min: 100, max: 2000, typical: 500 },
-    decor: { min: 10, max: 500, typical: 50 },
-    other: { min: 25, max: 1000, typical: 150 },
-  };
-
-  // Keywords that indicate higher value items
-  private premiumKeywords = [
-    'leather', 'cuir', 'premium', 'luxury', 'designer', 'professional',
-    'large', 'grand', 'king', 'queen', '55', '65', '75', 'inch', 'pouces',
-    'smart', '4k', 'oled', 'led', 'stainless', 'inox', 'solid', 'massif'
-  ];
-
-  // Keywords that indicate lower value items
-  private budgetKeywords = [
-    'small', 'petit', 'mini', 'basic', 'simple', 'entry', 'starter'
-  ];
-
-  private estimatePriceFromName(itemName: string, category: string): number {
-    const name = itemName.toLowerCase();
-    const range = this.categoryPriceRanges[category] || this.categoryPriceRanges.other;
-    
-    // Start with typical price for category
-    let price = range.typical;
-    
-    // Check for premium indicators
-    const hasPremium = this.premiumKeywords.some(keyword => name.includes(keyword));
-    const hasBudget = this.budgetKeywords.some(keyword => name.includes(keyword));
-    
-    if (hasPremium) {
-      price = range.typical * 1.8; // Premium items cost more
-    } else if (hasBudget) {
-      price = range.typical * 0.6; // Budget items cost less
+  async estimatePrice(item: PricingInput): Promise<PricingResult> {
+    if (!dataForSeoService.isConfigured) {
+      return { estimatedValue: 0, replacementValue: 0, pricingMetadata: null };
     }
-    
-    // Size indicators (for furniture/electronics)
-    if (category === 'furniture' || category === 'electronics') {
-      if (name.includes('55') || name.includes('65') || name.includes('75')) {
-        price *= 1.5; // Large screens cost more
-      } else if (name.includes('32') || name.includes('40')) {
-        price *= 0.7; // Smaller screens cost less
-      }
-    }
-    
-    // Brand premium (if brand is mentioned, add 20%)
-    // This will be handled separately when brand is provided
-    
-    // Ensure price is within category range
-    price = Math.max(range.min, Math.min(range.max, price));
-    
-    return Math.round(price);
-  }
 
-  async searchPrice(
-    itemName: string, 
-    brand?: string, 
-    model?: string,
-    category?: string
-  ): Promise<PriceData> {
-    // For MVP, return smart estimated data based on category and item name
-    // In Phase 2, integrate with DataForSEO or SERP API
-    
-    const searchQuery = [brand, model, itemName].filter(Boolean).join(' ');
-    const itemCategory = category || 'other';
-    
-    // Get base price estimate from item name and category
-    let estimatedPrice = this.estimatePriceFromName(itemName, itemCategory);
-    
-    // Apply brand premium (known brands typically cost 10-30% more)
-    if (brand) {
-      const brandLower = brand.toLowerCase();
-      const premiumBrands = ['apple', 'samsung', 'sony', 'lg', 'dyson', 'dyson', 'bosch', 'miele'];
-      const midBrands = ['ikea', 'wayfair', 'amazon basics'];
-      
-      if (premiumBrands.some(pb => brandLower.includes(pb))) {
-        estimatedPrice *= 1.3; // Premium brands
-      } else if (midBrands.some(mb => brandLower.includes(mb))) {
-        estimatedPrice *= 0.9; // Budget brands
-      } else {
-        estimatedPrice *= 1.1; // Generic brand premium
-      }
+    const searchQuery = buildSearchQuery(item);
+    if (!searchQuery.trim()) {
+      return { estimatedValue: 0, replacementValue: 0, pricingMetadata: null };
     }
-    
-    // Add some realistic variation (±15%)
-    const variation = 0.15;
-    const minPrice = estimatedPrice * (1 - variation);
-    const maxPrice = estimatedPrice * (1 + variation);
-    const finalPrice = Math.floor(Math.random() * (maxPrice - minPrice + 1) + minPrice);
-    
-    // Round to nearest 10 for more realistic prices
-    const roundedPrice = Math.round(finalPrice / 10) * 10;
+
+    const results = await dataForSeoService.search(searchQuery);
+
+    // Filter to CAD only
+    const cadResults = results.filter(
+      (r: ShoppingResult) => r.currency === 'CAD' && r.price > 0
+    );
+
+    if (cadResults.length === 0) {
+      return {
+        estimatedValue: 0,
+        replacementValue: 0,
+        pricingMetadata: {
+          pricingSource: 'dataforseo',
+          medianPrice: 0,
+          sampleCount: 0,
+          searchQuery,
+          priceRange: { min: 0, max: 0 },
+          estimatedAt: new Date().toISOString(),
+        },
+      };
+    }
+
+    const rawPrices = cadResults.map((r: ShoppingResult) => r.price);
+    const filteredPrices = filterOutliers(rawPrices);
+    const medianPrice = computeMedian(filteredPrices);
+
+    const estimatedValue = Math.round(medianPrice * 100) / 100;
+    const replacementValue = Math.round(medianPrice * REPLACEMENT_BUFFER * 100) / 100;
 
     return {
-      source: 'estimated',
-      searchQuery,
-      prices: [
-        {
-          retailer: 'Estimated Price',
-          price: roundedPrice,
-          currency: 'CAD',
+      estimatedValue,
+      replacementValue,
+      pricingMetadata: {
+        pricingSource: 'dataforseo',
+        medianPrice,
+        sampleCount: filteredPrices.length,
+        searchQuery,
+        priceRange: {
+          min: Math.min(...filteredPrices),
+          max: Math.max(...filteredPrices),
         },
-      ],
-      averagePrice: roundedPrice,
-      currency: 'CAD',
-      retrievedAt: new Date().toISOString(),
+        estimatedAt: new Date().toISOString(),
+      },
     };
+  }
+
+  async estimatePrices(items: PricingInput[]): Promise<PricingResult[]> {
+    const results: PricingResult[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const result = await this.estimatePrice(items[i]);
+      results.push(result);
+      if (i < items.length - 1) {
+        await sleep(INTER_REQUEST_DELAY_MS);
+      }
+    }
+    return results;
   }
 }
 

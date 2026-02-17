@@ -53,8 +53,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       });
       setIsEditing(false);
       onUpdate();
-    } catch (error) {
-      console.error('Error updating item:', error);
+    } catch {
       alert('Erreur lors de la mise à jour de l\'item');
     } finally {
       setSaving(false);
@@ -82,8 +81,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       setDeleting(true);
       await inventoryApi.deleteItem(inventoryId, item.id);
       onUpdate();
-    } catch (error) {
-      console.error('Error deleting item:', error);
+    } catch {
       alert('Erreur lors de la suppression de l\'item');
       setDeleting(false);
     }

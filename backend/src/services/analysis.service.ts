@@ -1,6 +1,9 @@
 import prisma from '../database/client';
+import { Prisma } from '@prisma/client';
 import { openaiService } from './openai.service';
 import { locationService } from './location.service';
+import { pricingService } from './pricing.service';
+import type { PricingInput } from './pricing.service';
 
 class AnalysisService {
   async startRoomAnalysis(roomId: string, userId: string, model?: string | null) {
@@ -48,6 +51,7 @@ class AnalysisService {
     });
     const errors: string[] = [];
     let processed = 0;
+    const createdItemIds: { id: string; input: PricingInput; aiAnalysis: Prisma.InputJsonObject }[] = [];
 
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
@@ -65,7 +69,19 @@ class AnalysisService {
         const imageBuffer = Buffer.from(image.imageData);
         const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
-          await prisma.roomDetectedItem.create({
+          const aiAnalysis: Prisma.InputJsonObject = {
+            description: itemData.description,
+            sourceImageId: image.id,
+            boundingBox: itemData.boundingBox
+              ? {
+                  x: itemData.boundingBox.x,
+                  y: itemData.boundingBox.y,
+                  width: itemData.boundingBox.width,
+                  height: itemData.boundingBox.height,
+                }
+              : undefined,
+          };
+          const created = await prisma.roomDetectedItem.create({
             data: {
               roomId,
               roomAnalysisRunId: runId,
@@ -78,25 +94,53 @@ class AnalysisService {
               estimatedAge: itemData.estimatedAge ?? undefined,
               estimatedValue: 0,
               replacementValue: 0,
-              aiAnalysis: {
-                description: itemData.description,
-                sourceImageId: image.id,
-                boundingBox: itemData.boundingBox
-                  ? {
-                      x: itemData.boundingBox.x,
-                      y: itemData.boundingBox.y,
-                      width: itemData.boundingBox.width,
-                      height: itemData.boundingBox.height,
-                    }
-                  : undefined,
-              },
+              aiAnalysis,
             },
+          });
+          createdItemIds.push({
+            id: created.id,
+            input: {
+              itemName: itemData.name,
+              brand: itemData.brand ?? undefined,
+              model: itemData.model ?? undefined,
+              category: itemData.category,
+            },
+            aiAnalysis,
           });
         }
         processed++;
       } catch (err: any) {
         errors.push(`${image.fileName}: ${err.message || 'Erreur'}`);
       }
+    }
+
+    // Price all detected items (non-fatal)
+    try {
+      if (createdItemIds.length > 0) {
+        const pricingResults = await pricingService.estimatePrices(
+          createdItemIds.map((item) => item.input)
+        );
+        for (let i = 0; i < createdItemIds.length; i++) {
+          const pricing = pricingResults[i];
+          if (pricing && (pricing.estimatedValue > 0 || pricing.pricingMetadata)) {
+            await prisma.roomDetectedItem.update({
+              where: { id: createdItemIds[i].id },
+              data: {
+                estimatedValue: pricing.estimatedValue,
+                replacementValue: pricing.replacementValue,
+                aiAnalysis: {
+                  ...createdItemIds[i].aiAnalysis,
+                  ...(pricing.pricingMetadata
+                    ? { pricing: pricing.pricingMetadata as unknown as Prisma.InputJsonObject }
+                    : {}),
+                } as Prisma.InputJsonObject,
+              },
+            });
+          }
+        }
+      }
+    } catch (pricingErr) {
+      console.warn(`[Room ${roomId}] Pricing failed (non-fatal):`, (pricingErr as Error).message);
     }
 
     const runStatus = errors.length === images.length ? 'error' : 'completed';
@@ -169,6 +213,7 @@ class AnalysisService {
     });
     const errors: string[] = [];
     let processed = 0;
+    const createdItemIds: { id: string; input: PricingInput; aiAnalysis: Prisma.InputJsonObject }[] = [];
 
     for (let i = 0; i < images.length; i++) {
       const image = images[i];
@@ -186,7 +231,19 @@ class AnalysisService {
         const imageBuffer = Buffer.from(image.imageData);
         const items = await openaiService.analyzeImage(imageBuffer, image.imageType, model);
         for (const itemData of items) {
-          await prisma.safeDetectedItem.create({
+          const aiAnalysis: Prisma.InputJsonObject = {
+            description: itemData.description,
+            sourceImageId: image.id,
+            boundingBox: itemData.boundingBox
+              ? {
+                  x: itemData.boundingBox.x,
+                  y: itemData.boundingBox.y,
+                  width: itemData.boundingBox.width,
+                  height: itemData.boundingBox.height,
+                }
+              : undefined,
+          };
+          const created = await prisma.safeDetectedItem.create({
             data: {
               safeId,
               safeAnalysisRunId: runId,
@@ -199,25 +256,53 @@ class AnalysisService {
               estimatedAge: itemData.estimatedAge ?? undefined,
               estimatedValue: 0,
               replacementValue: 0,
-              aiAnalysis: {
-                description: itemData.description,
-                sourceImageId: image.id,
-                boundingBox: itemData.boundingBox
-                  ? {
-                      x: itemData.boundingBox.x,
-                      y: itemData.boundingBox.y,
-                      width: itemData.boundingBox.width,
-                      height: itemData.boundingBox.height,
-                    }
-                  : undefined,
-              },
+              aiAnalysis,
             },
+          });
+          createdItemIds.push({
+            id: created.id,
+            input: {
+              itemName: itemData.name,
+              brand: itemData.brand ?? undefined,
+              model: itemData.model ?? undefined,
+              category: itemData.category,
+            },
+            aiAnalysis,
           });
         }
         processed++;
       } catch (err: any) {
         errors.push(`${image.fileName}: ${err.message || 'Erreur'}`);
       }
+    }
+
+    // Price all detected items (non-fatal)
+    try {
+      if (createdItemIds.length > 0) {
+        const pricingResults = await pricingService.estimatePrices(
+          createdItemIds.map((item) => item.input)
+        );
+        for (let i = 0; i < createdItemIds.length; i++) {
+          const pricing = pricingResults[i];
+          if (pricing && (pricing.estimatedValue > 0 || pricing.pricingMetadata)) {
+            await prisma.safeDetectedItem.update({
+              where: { id: createdItemIds[i].id },
+              data: {
+                estimatedValue: pricing.estimatedValue,
+                replacementValue: pricing.replacementValue,
+                aiAnalysis: {
+                  ...createdItemIds[i].aiAnalysis,
+                  ...(pricing.pricingMetadata
+                    ? { pricing: pricing.pricingMetadata as unknown as Prisma.InputJsonObject }
+                    : {}),
+                } as Prisma.InputJsonObject,
+              },
+            });
+          }
+        }
+      }
+    } catch (pricingErr) {
+      console.warn(`[Safe ${safeId}] Pricing failed (non-fatal):`, (pricingErr as Error).message);
     }
 
     const runStatus = errors.length === images.length ? 'error' : 'completed';

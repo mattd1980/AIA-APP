@@ -20,6 +20,14 @@ export type VisionModelId = (typeof VISION_MODELS)[number]['id'];
 
 const ALLOWED_IDS = new Set<string>(VISION_MODELS.map((m) => m.id));
 
+// GPT-5 reasoning models do not support the temperature parameter.
+// Only non-reasoning models (GPT-4o, etc.) support it.
+const MODELS_WITHOUT_TEMPERATURE = new Set<string>([
+  'gpt-5.2-pro',
+  'gpt-5.2',
+  'gpt-5-mini',
+]);
+
 function resolveModel(userModel?: string | null): VisionModelId {
   if (userModel && ALLOWED_IDS.has(userModel)) return userModel as VisionModelId;
   return DEFAULT_VISION_MODEL as VisionModelId;
@@ -51,9 +59,10 @@ class OpenAIService {
       const imageDataUrl = `data:${mimeType};base64,${base64Image}`;
 
       const modelId = resolveModel(model);
+      const supportsTemperature = !MODELS_WITHOUT_TEMPERATURE.has(modelId);
       const response = await openai.responses.create({
         model: modelId,
-        temperature: 0, // Reproducible results: same image → same detections across runs
+        ...(supportsTemperature ? { temperature: 0 } : {}),
         input: [
           {
             role: 'user',

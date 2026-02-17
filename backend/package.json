@@ -18,7 +18,9 @@
     "prisma:studio": "prisma studio",
     "migrate:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate",
-    "railway": "node scripts/railway-start.js"
+    "railway": "node scripts/railway-start.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +30,9 @@
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "express-rate-limit": "^8.2.1",
     "express-session": "^1.18.1",
+    "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.1",
     "openai": "^4.68.0",
     "passport": "^0.7.0",
@@ -48,10 +52,13 @@
     "@types/passport-google-oauth20": "^2.0.14",
     "@types/passport-local": "^1.0.38",
     "@types/pdfkit": "^0.13.0",
+    "@types/supertest": "^6.0.3",
     "dotenv": "^17.2.3",
     "nodemon": "^3.1.7",
     "prisma": "^5.19.1",
+    "supertest": "^7.2.2",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.0.18"
   }
 }
