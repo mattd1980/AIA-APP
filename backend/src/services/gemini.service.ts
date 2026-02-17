@@ -1,4 +1,3 @@
-import { GoogleGenAI } from '@google/genai';
 import { VisionItem, BoundingBox, ItemCategory } from '../types';
 
 /** Gemini models users can select (id = API model name) */
@@ -41,6 +40,8 @@ class GeminiService {
       throw new Error('Gemini API key not configured');
     }
 
+    // Dynamic import: @google/genai is ESM-only, so require() fails in CJS builds
+    const { GoogleGenAI } = await import('@google/genai');
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const modelId = resolveModel(model);
 
