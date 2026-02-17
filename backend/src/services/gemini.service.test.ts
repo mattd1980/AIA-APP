@@ -1,16 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock @google/genai before importing the service
-const mockGenerateContent = vi.fn();
-vi.mock('@google/genai', () => {
-  return {
-    GoogleGenAI: class {
-      models = { generateContent: mockGenerateContent };
-    },
-  };
-});
-
 import { GEMINI_MODELS, geminiService } from './gemini.service';
+
+function mockFetchResponse(body: object, ok = true, status = 200) {
+  return vi.fn().mockResolvedValue({
+    ok,
+    status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(JSON.stringify(body)),
+  });
+}
+
+function geminiApiBody(text: string) {
+  return {
+    candidates: [{ content: { parts: [{ text }] } }],
+  };
+}
 
 describe('GEMINI_MODELS', () => {
   it('exports 3 models', () => {
@@ -33,7 +37,7 @@ describe('GEMINI_MODELS', () => {
 describe('geminiService.analyzeImage', () => {
   beforeEach(() => {
     vi.stubEnv('GEMINI_API_KEY', 'test-key');
-    mockGenerateContent.mockReset();
+    vi.restoreAllMocks();
   });
 
   it('throws if GEMINI_API_KEY is not set', async () => {
@@ -45,22 +49,21 @@ describe('geminiService.analyzeImage', () => {
   });
 
   it('parses Gemini response and converts box_2d to boundingBox', async () => {
-    mockGenerateContent.mockResolvedValue({
-      text: JSON.stringify({
-        items: [
-          {
-            name: 'Canape en cuir',
-            category: 'furniture',
-            brand: null,
-            model: null,
-            condition: 'good',
-            estimatedAge: 3,
-            description: 'Grand canape en cuir marron',
-            box_2d: [100, 200, 500, 800],
-          },
-        ],
-      }),
+    const payload = JSON.stringify({
+      items: [
+        {
+          name: 'Canape en cuir',
+          category: 'furniture',
+          brand: null,
+          model: null,
+          condition: 'good',
+          estimatedAge: 3,
+          description: 'Grand canape en cuir marron',
+          box_2d: [100, 200, 500, 800],
+        },
+      ],
     });
+    vi.stubGlobal('fetch', mockFetchResponse(geminiApiBody(payload)));
 
     const buf = Buffer.from('fake-image');
     const items = await geminiService.analyzeImage(buf, 'image/jpeg', 'gemini-2.5-flash');
@@ -77,25 +80,24 @@ describe('geminiService.analyzeImage', () => {
   });
 
   it('filters out person-like items', async () => {
-    mockGenerateContent.mockResolvedValue({
-      text: JSON.stringify({
-        items: [
-          {
-            name: 'Personne assise',
-            category: 'other',
-            condition: 'good',
-            description: 'Un homme sur le canape',
-          },
-          {
-            name: 'Table basse',
-            category: 'furniture',
-            condition: 'good',
-            description: 'Table en bois',
-            box_2d: [0, 0, 500, 500],
-          },
-        ],
-      }),
+    const payload = JSON.stringify({
+      items: [
+        {
+          name: 'Personne assise',
+          category: 'other',
+          condition: 'good',
+          description: 'Un homme sur le canape',
+        },
+        {
+          name: 'Table basse',
+          category: 'furniture',
+          condition: 'good',
+          description: 'Table en bois',
+          box_2d: [0, 0, 500, 500],
+        },
+      ],
     });
+    vi.stubGlobal('fetch', mockFetchResponse(geminiApiBody(payload)));
 
     const buf = Buffer.from('fake-image');
     const items = await geminiService.analyzeImage(buf, 'image/jpeg');
@@ -105,18 +107,17 @@ describe('geminiService.analyzeImage', () => {
   });
 
   it('handles missing box_2d gracefully', async () => {
-    mockGenerateContent.mockResolvedValue({
-      text: JSON.stringify({
-        items: [
-          {
-            name: 'Lampe de bureau',
-            category: 'decor',
-            condition: 'excellent',
-            description: 'Lampe LED moderne',
-          },
-        ],
-      }),
+    const payload = JSON.stringify({
+      items: [
+        {
+          name: 'Lampe de bureau',
+          category: 'decor',
+          condition: 'excellent',
+          description: 'Lampe LED moderne',
+        },
+      ],
     });
+    vi.stubGlobal('fetch', mockFetchResponse(geminiApiBody(payload)));
 
     const buf = Buffer.from('fake-image');
     const items = await geminiService.analyzeImage(buf, 'image/jpeg');
@@ -126,7 +127,7 @@ describe('geminiService.analyzeImage', () => {
   });
 
   it('handles empty response', async () => {
-    mockGenerateContent.mockResolvedValue({ text: '' });
+    vi.stubGlobal('fetch', mockFetchResponse(geminiApiBody('')));
 
     const buf = Buffer.from('fake-image');
     const items = await geminiService.analyzeImage(buf, 'image/jpeg');
@@ -135,23 +136,31 @@ describe('geminiService.analyzeImage', () => {
   });
 
   it('defaults invalid category to other', async () => {
-    mockGenerateContent.mockResolvedValue({
-      text: JSON.stringify({
-        items: [
-          {
-            name: 'Objet inconnu',
-            category: 'invalid_category',
-            condition: 'good',
-            description: 'Un objet',
-            box_2d: [0, 0, 100, 100],
-          },
-        ],
-      }),
+    const payload = JSON.stringify({
+      items: [
+        {
+          name: 'Objet inconnu',
+          category: 'invalid_category',
+          condition: 'good',
+          description: 'Un objet',
+          box_2d: [0, 0, 100, 100],
+        },
+      ],
     });
+    vi.stubGlobal('fetch', mockFetchResponse(geminiApiBody(payload)));
 
     const buf = Buffer.from('fake-image');
     const items = await geminiService.analyzeImage(buf, 'image/jpeg');
 
     expect(items[0].category).toBe('other');
+  });
+
+  it('throws on HTTP error', async () => {
+    vi.stubGlobal('fetch', mockFetchResponse({ error: 'bad request' }, false, 400));
+
+    const buf = Buffer.from('fake-image');
+    await expect(geminiService.analyzeImage(buf, 'image/jpeg')).rejects.toThrow(
+      'Gemini API error'
+    );
   });
 });

@@ -34,36 +34,7 @@ const validCategories: ItemCategory[] = [
 
 const personKeywords = /\b(personne|person|people|humain|human|child|children|kid|kids|baby|bébé|adult|adulte|homme|woman|femme|enfant|man|woman|visage|face)\b/i;
 
-class GeminiService {
-  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg', model?: string | null): Promise<VisionItem[]> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
-    // Dynamic import: @google/genai is ESM-only, so require() fails in CJS builds
-    const { GoogleGenAI } = await import('@google/genai');
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const modelId = resolveModel(model);
-
-    let mimeType = imageType || 'image/jpeg';
-    if (!mimeType.startsWith('image/')) {
-      mimeType = 'image/jpeg';
-    }
-
-    const base64Image = imageBuffer.toString('base64');
-    if (!base64Image || base64Image.length === 0) {
-      throw new Error('Invalid image buffer: empty or corrupted');
-    }
-
-    try {
-      const response = await ai.models.generateContent({
-        model: modelId,
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `Vous analysez une photo pour un inventaire d'assurance habitation. Listez UNIQUEMENT les OBJETS et BIENS susceptibles d'être assurés (meubles, électronique, électroménager, bijoux, oeuvres d'art, objets de valeur, etc.).
+const PROMPT = `Vous analysez une photo pour un inventaire d'assurance habitation. Listez UNIQUEMENT les OBJETS et BIENS susceptibles d'être assurés (meubles, électronique, électroménager, bijoux, oeuvres d'art, objets de valeur, etc.).
 
 RÈGLES ABSOLUES — À RESPECTER STRICTEMENT:
 - NE LISTEZ JAMAIS de personnes: ni adultes, ni enfants, ni bébés, ni silhouettes humaines. Les personnes ne sont PAS des objets et ne doivent jamais apparaître dans la liste.
@@ -97,23 +68,67 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
       "box_2d": [ymin, xmin, ymax, xmax]
     }
   ]
-}`,
-              },
-              {
-                inlineData: {
-                  mimeType,
-                  data: base64Image,
-                },
-              },
-            ],
-          },
-        ],
-        config: {
-          responseMimeType: 'application/json',
-        },
+}`;
+
+interface GeminiApiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string }>;
+    };
+  }>;
+  error?: { message: string; code: number };
+}
+
+class GeminiService {
+  async analyzeImage(imageBuffer: Buffer, imageType: string = 'image/jpeg', model?: string | null): Promise<VisionItem[]> {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    const modelId = resolveModel(model);
+
+    let mimeType = imageType || 'image/jpeg';
+    if (!mimeType.startsWith('image/')) {
+      mimeType = 'image/jpeg';
+    }
+
+    const base64Image = imageBuffer.toString('base64');
+    if (!base64Image || base64Image.length === 0) {
+      throw new Error('Invalid image buffer: empty or corrupted');
+    }
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${process.env.GEMINI_API_KEY}`;
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                { text: PROMPT },
+                { inlineData: { mimeType, data: base64Image } },
+              ],
+            },
+          ],
+          generationConfig: { responseMimeType: 'application/json' },
+        }),
       });
 
-      const content = response.text;
+      if (!res.ok) {
+        const errorBody = await res.text();
+        throw new Error(`Gemini API HTTP ${res.status}: ${errorBody}`);
+      }
+
+      const json = (await res.json()) as GeminiApiResponse;
+
+      if (json.error) {
+        throw new Error(`Gemini API error: ${json.error.message}`);
+      }
+
+      const content = json.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!content) {
         console.warn('Gemini returned empty content');
         return [];
@@ -163,11 +178,8 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
         };
       });
     } catch (error: unknown) {
-      const err = error as Error & { response?: { data?: unknown } };
+      const err = error as Error;
       console.error('Gemini API error:', err);
-      if (err.response) {
-        console.error('Gemini API response error:', err.response.data);
-      }
       throw new Error(`Gemini API error: ${err.message}`);
     }
   }
