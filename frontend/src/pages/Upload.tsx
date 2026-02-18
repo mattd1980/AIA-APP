@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUpload, faImage, faCamera } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '@/services/api';
@@ -35,10 +36,10 @@ export default function Upload() {
     },
   });
 
-  // Détecter si on est sur mobile
+  // Detecter si on est sur mobile
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // Créer les previews URLs quand les fichiers changent
+  // Creer les previews URLs quand les fichiers changent
   useEffect(() => {
     const newUrls = new Map<number, string>();
     files.forEach((file, index) => {
@@ -50,7 +51,7 @@ export default function Upload() {
     });
     setPreviewUrls(newUrls);
 
-    // Nettoyer les URLs supprimées
+    // Nettoyer les URLs supprimees
     return () => {
       previewUrls.forEach((url, index) => {
         if (!files[index]) {
@@ -60,12 +61,12 @@ export default function Upload() {
     };
   }, [files]);
 
-  // Ouvrir la caméra (getUserMedia: prévisualisation in-app, idéal iOS/Android)
+  // Ouvrir la camera (getUserMedia: previsualisation in-app, ideal iOS/Android)
   const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          facingMode: 'environment', // Caméra arrière sur mobile (objet/inventaire)
+          facingMode: 'environment', // Camera arriere sur mobile (objet/inventaire)
           width: { ideal: 1920 },
           height: { ideal: 1080 },
         },
@@ -79,16 +80,16 @@ export default function Upload() {
         videoRef.current.srcObject = stream;
       }
     } catch {
-      // Fallback: input file avec capture pour ouvrir la caméra native (iOS/Android)
+      // Fallback: input file avec capture pour ouvrir la camera native (iOS/Android)
       if (cameraInputRef.current) {
         cameraInputRef.current.click();
       } else {
-        alert('Impossible d\'accéder à la caméra. Veuillez autoriser l\'accès ou utiliser le bouton "Galerie".');
+        toast.warning('Impossible d\'acceder a la camera. Veuillez autoriser l\'acces ou utiliser le bouton "Galerie".');
       }
     }
   };
 
-  // Prendre une photo depuis la caméra
+  // Prendre une photo depuis la camera
   const capturePhoto = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
@@ -113,7 +114,7 @@ export default function Upload() {
     }
   };
 
-  // Fermer la caméra
+  // Fermer la camera
   const closeCamera = () => {
     if (cameraStream) {
       cameraStream.getTracks().forEach((track) => track.stop());
@@ -122,7 +123,7 @@ export default function Upload() {
     setIsCameraOpen(false);
   };
 
-  // Fichiers depuis l'input caméra (fallback quand getUserMedia échoue)
+  // Fichiers depuis l'input camera (fallback quand getUserMedia echoue)
   const handleCameraFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (selectedFiles) {
@@ -131,7 +132,7 @@ export default function Upload() {
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
-  // Fichiers depuis la galerie (sans capture → ouvre Photos / Gallery sur iOS et Android)
+  // Fichiers depuis la galerie (sans capture -> ouvre Photos / Gallery sur iOS et Android)
   const handleGalleryFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
     if (selectedFiles) {
@@ -142,7 +143,7 @@ export default function Upload() {
 
   const handleSubmit = async () => {
     if (files.length === 0) {
-      alert('Veuillez sélectionner au moins une image');
+      toast.warning('Veuillez selectionner au moins une image');
       return;
     }
 
@@ -151,24 +152,24 @@ export default function Upload() {
       const inventory = await inventoryApi.create(files, inventoryName || undefined);
       navigate(`/inventory/${inventory.id}`);
     } catch {
-      alert('Erreur lors de l\'upload. Veuillez réessayer.');
+      toast.error('Erreur lors de l\'upload. Veuillez reessayer.');
     } finally {
       setUploading(false);
     }
   };
 
   const removeFile = (index: number) => {
-    // Nettoyer l'URL de l'image supprimée
+    // Nettoyer l'URL de l'image supprimee
     const urlToRevoke = previewUrls.get(index);
     if (urlToRevoke) {
       URL.revokeObjectURL(urlToRevoke);
     }
-    
+
     setFiles((prev) => prev.filter((_, i) => i !== index));
     setPreviewUrls((prev) => {
       const newUrls = new Map(prev);
       newUrls.delete(index);
-      // Réindexer les URLs restantes
+      // Reindexer les URLs restantes
       const reindexed = new Map<number, string>();
       files.forEach((_, i) => {
         if (i !== index && i < files.length) {
@@ -182,10 +183,10 @@ export default function Upload() {
     });
   };
 
-  // Nettoyer les URLs et la caméra lors du démontage
+  // Nettoyer les URLs et la camera lors du demontage
   useEffect(() => {
     return () => {
-      // Nettoyer la caméra
+      // Nettoyer la camera
       if (cameraStream) {
         cameraStream.getTracks().forEach((track) => track.stop());
       }
@@ -212,7 +213,7 @@ export default function Upload() {
         </CardContent>
       </Card>
 
-      {/* Boutons d'action rapide pour mobile — caméra et galerie correctement séparés pour iOS/Android */}
+      {/* Boutons d'action rapide pour mobile -- camera et galerie correctement separes pour iOS/Android */}
       {isMobile && (
         <div className="mb-6 flex gap-4">
           <Button
@@ -223,7 +224,7 @@ export default function Upload() {
             <FontAwesomeIcon icon={faCamera} className="mr-2" />
             Prendre une photo
           </Button>
-          {/* Input caméra : capture="environment" pour ouvrir la caméra arrière (fallback si getUserMedia échoue) */}
+          {/* Input camera : capture="environment" pour ouvrir la camera arriere (fallback si getUserMedia echoue) */}
           <input
             ref={cameraInputRef}
             type="file"
@@ -254,13 +255,13 @@ export default function Upload() {
         </div>
       )}
 
-      {/* Vue caméra */}
+      {/* Vue camera */}
       {isCameraOpen && (
         <Card className="mb-6 shadow-xl">
           <CardHeader>
             <CardTitle className="mb-4 flex items-center">
               <FontAwesomeIcon icon={faCamera} className="mr-2" />
-              Caméra
+              Camera
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -303,15 +304,15 @@ export default function Upload() {
         <div className="flex flex-col items-center justify-center p-6">
           <FontAwesomeIcon icon={faUpload} className="mb-4 text-6xl text-primary" />
           <h3 className="mb-2 text-xl font-semibold">
-            {isDragActive ? 'Déposez les images ici' : 'Glissez vos images ici'}
+            {isDragActive ? 'Deposez les images ici' : 'Glissez vos images ici'}
           </h3>
           <p className="mb-4 text-center text-muted-foreground">
             {isMobile
-              ? 'Ou utilisez les boutons ci-dessus pour la caméra'
-              : 'Ou cliquez pour sélectionner des fichiers'}
+              ? 'Ou utilisez les boutons ci-dessus pour la camera'
+              : 'Ou cliquez pour selectionner des fichiers'}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
-            Formats supportés: JPG, PNG, WEBP (max 10MB)
+            Formats supportes: JPG, PNG, WEBP (max 10MB)
           </p>
           <Button
             type="button"
@@ -323,7 +324,7 @@ export default function Upload() {
             }}
           >
             <FontAwesomeIcon icon={faImage} className="mr-2" />
-            Sélectionner des fichiers
+            Selectionner des fichiers
           </Button>
         </div>
       </div>
@@ -333,7 +334,7 @@ export default function Upload() {
           <CardHeader>
             <CardTitle className="mb-4 flex items-center">
               <FontAwesomeIcon icon={faImage} className="mr-2" />
-              Images sélectionnées ({files.length})
+              Images selectionnees ({files.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -356,7 +357,7 @@ export default function Upload() {
                       className="absolute right-2 top-2 size-8 opacity-0 transition-opacity group-hover:opacity-100"
                       onClick={() => removeFile(index)}
                     >
-                      ×
+                      x
                     </Button>
                     <p className="mt-1 truncate text-center text-xs">{file.name}</p>
                   </div>
@@ -383,7 +384,7 @@ export default function Upload() {
           ) : (
             <>
               <FontAwesomeIcon icon={faUpload} className="mr-2" />
-              Créer l'inventaire
+              Creer l'inventaire
             </>
           )}
         </Button>

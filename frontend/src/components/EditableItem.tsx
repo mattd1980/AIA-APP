@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDollarSign, faEdit, faSave, faTimes, faImage, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { inventoryApi } from '@/services/api';
 import type { InventoryItem } from '@/services/api';
 import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { CATEGORY_OPTIONS as categories } from '@/constants/categories';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +33,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [formData, setFormData] = useState({
     itemName: item.itemName,
     category: item.category,
@@ -54,7 +57,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
       setIsEditing(false);
       onUpdate();
     } catch {
-      alert('Erreur lors de la mise à jour de l\'item');
+      toast.error('Erreur lors de la mise a jour de l\'item');
     } finally {
       setSaving(false);
     }
@@ -72,18 +75,19 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
     setIsEditing(false);
   };
 
-  const handleDelete = async () => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${item.itemName}" ? Cette action est irréversible.`)) {
-      return;
-    }
+  const handleDelete = () => {
+    setConfirmDelete(true);
+  };
 
+  const executeDelete = async () => {
     try {
       setDeleting(true);
       await inventoryApi.deleteItem(inventoryId, item.id);
       onUpdate();
     } catch {
-      alert('Erreur lors de la suppression de l\'item');
+      toast.error('Erreur lors de la suppression de l\'item');
       setDeleting(false);
+      throw new Error();
     }
   };
 
@@ -117,7 +121,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label>Catégorie</Label>
+                <Label>Categorie</Label>
                 <select
                   className="w-full"
                   value={formData.category}
@@ -132,7 +136,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
               </div>
 
               <div className="space-y-2">
-                <Label>État</Label>
+                <Label>Etat</Label>
                 <select
                   className="w-full"
                   value={formData.condition}
@@ -160,7 +164,7 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
-                <Label title="Valeur estimée en dollars canadiens (CAD)">Valeur estimée</Label>
+                <Label title="Valeur estimee en dollars canadiens (CAD)">Valeur estimee</Label>
                 <Input
                   type="number"
                   className="w-full"
@@ -323,8 +327,8 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
 
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-muted-foreground" title="Valeur estimée en dollars canadiens (CAD)">
-              Valeur estimée
+            <p className="text-xs text-muted-foreground" title="Valeur estimee en dollars canadiens (CAD)">
+              Valeur estimee
             </p>
             <p className="text-lg font-bold text-primary break-words">
               <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
@@ -351,6 +355,15 @@ export default function EditableItem({ item, inventoryId, onUpdate }: EditableIt
           </div>
         )}
       </CardContent>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Supprimer l'item"
+        description={`Etes-vous sur de vouloir supprimer "${item.itemName}" ? Cette action est irreversible.`}
+        confirmLabel="Supprimer"
+        onConfirm={executeDelete}
+      />
     </Card>
   );
 }

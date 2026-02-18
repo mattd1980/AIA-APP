@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faDollarSign,
@@ -66,7 +67,7 @@ export default function InventoryDetail() {
       setInventoryName(data.name || '');
     } catch {
       if (showLoading) {
-        alert('Erreur lors du chargement de l\'inventaire');
+        toast.error('Erreur lors du chargement de l\'inventaire');
       }
     } finally {
       if (showLoading) {
@@ -83,7 +84,7 @@ export default function InventoryDetail() {
       setEditingName(false);
       loadInventory(false);
     } catch {
-      alert('Erreur lors de la mise a jour du nom');
+      toast.error('Erreur lors de la mise a jour du nom');
     } finally {
       setSavingName(false);
     }
@@ -99,7 +100,7 @@ export default function InventoryDetail() {
         fileInputRef.current.value = '';
       }
     } catch {
-      alert('Erreur lors de l\'ajout des images');
+      toast.error('Erreur lors de l\'ajout des images');
     } finally {
       setAddingImages(false);
     }
@@ -118,7 +119,7 @@ export default function InventoryDetail() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch {
-      alert('Erreur lors de la generation du rapport');
+      toast.error('Erreur lors de la generation du rapport');
     } finally {
       setGeneratingReport(false);
     }

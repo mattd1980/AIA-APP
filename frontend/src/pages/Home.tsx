@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileCsv } from '@fortawesome/free-solid-svg-icons';
 import { locationsApi } from '@/services/api';
@@ -7,6 +8,7 @@ import { SUGGESTED_LOCATIONS } from '@/constants/suggestions';
 import { getLocationIcon } from '@/constants/location-icons';
 import LocationCard from '@/components/LocationCard';
 import AddItemCard from '@/components/AddItemCard';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -20,6 +22,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const addedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,15 +76,18 @@ export default function Home() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Etes-vous sur de vouloir supprimer ce lieu ? Toutes les pieces, coffres et photos seront supprimes.')) {
-      return;
-    }
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDeleteId) return;
     try {
-      await locationsApi.delete(id);
+      await locationsApi.delete(confirmDeleteId);
       loadLocations();
     } catch {
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
+      throw new Error();
     }
   };
 
@@ -96,7 +102,7 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Erreur lors de l\'export. Reessayez.');
+      toast.error('Erreur lors de l\'export. Reessayez.');
     } finally {
       setExporting(false);
     }
@@ -172,6 +178,15 @@ export default function Home() {
           Aucun lieu pour le moment. Cliquez sur le "+" pour en ajouter.
         </p>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+        title="Supprimer le lieu"
+        description="Etes-vous sur de vouloir supprimer ce lieu ? Toutes les pieces, coffres et photos seront supprimes."
+        confirmLabel="Supprimer"
+        onConfirm={executeDelete}
+      />
     </div>
   );
 }

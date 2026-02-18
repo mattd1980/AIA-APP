@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faDoorOpen, faVault } from '@fortawesome/free-solid-svg-icons';
 import { locationsApi, roomsApi, safesApi } from '@/services/api';
 import type { Location } from '@/services/api';
 import { SUGGESTED_ROOMS, SUGGESTED_SAFES } from '@/constants/suggestions';
 import { getRoomIcon } from '@/constants/room-icons';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -32,6 +34,8 @@ export default function LocationDetail() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showAddRoom, setShowAddRoom] = useState(false);
   const [showAddSafe, setShowAddSafe] = useState(false);
+  const [confirmDeleteRoomId, setConfirmDeleteRoomId] = useState<string | null>(null);
+  const [confirmDeleteSafeId, setConfirmDeleteSafeId] = useState<string | null>(null);
   const addedRoomRef = useRef<HTMLDivElement>(null);
   const addedSafeRef = useRef<HTMLDivElement>(null);
 
@@ -120,23 +124,33 @@ export default function LocationDetail() {
     }
   };
 
-  const handleDeleteRoom = async (roomId: string) => {
-    if (!confirm('Supprimer cette piece et toutes ses photos ?')) return;
+  const handleDeleteRoom = (roomId: string) => {
+    setConfirmDeleteRoomId(roomId);
+  };
+
+  const executeDeleteRoom = async () => {
+    if (!confirmDeleteRoomId) return;
     try {
-      await roomsApi.delete(roomId);
+      await roomsApi.delete(confirmDeleteRoomId);
       loadLocation();
     } catch {
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
+      throw new Error();
     }
   };
 
-  const handleDeleteSafe = async (safeId: string) => {
-    if (!confirm('Supprimer ce coffre et toutes ses photos ?')) return;
+  const handleDeleteSafe = (safeId: string) => {
+    setConfirmDeleteSafeId(safeId);
+  };
+
+  const executeDeleteSafe = async () => {
+    if (!confirmDeleteSafeId) return;
     try {
-      await safesApi.delete(safeId);
+      await safesApi.delete(confirmDeleteSafeId);
       loadLocation();
     } catch {
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
+      throw new Error();
     }
   };
 
@@ -324,6 +338,24 @@ export default function LocationDetail() {
           </p>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmDeleteRoomId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteRoomId(null); }}
+        title="Supprimer la piece"
+        description="Supprimer cette piece et toutes ses photos ?"
+        confirmLabel="Supprimer"
+        onConfirm={executeDeleteRoom}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteSafeId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteSafeId(null); }}
+        title="Supprimer le coffre"
+        description="Supprimer ce coffre et toutes ses photos ?"
+        confirmLabel="Supprimer"
+        onConfirm={executeDeleteSafe}
+      />
     </div>
   );
 }

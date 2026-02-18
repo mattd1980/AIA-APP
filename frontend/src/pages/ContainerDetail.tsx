@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDropzone } from 'react-dropzone';
+import { toast } from 'sonner';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faArrowLeft,
@@ -17,6 +18,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ImageWithBoundingBoxes from '@/components/ImageWithBoundingBoxes';
 import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { createContainerApi, visionModelsApi } from '@/services/api';
 import type { Container, ContainerDetectedItem, VisionModel } from '@/services/api';
 import type { ContainerType } from '@/constants/container-config';
@@ -65,6 +67,8 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
   const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
   const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
+  const [confirmDeleteImageId, setConfirmDeleteImageId] = useState<string | null>(null);
+  const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
   const { estimating, error: pricingError, estimate: handleEstimatePrices } = usePriceEstimation(
     id,
     containerType,
@@ -136,7 +140,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
     });
   });
   if (manualItems.length > 0) {
-    tabs.push({ id: 'manual', label: 'Ajoutés manuellement', count: manualItems.length });
+    tabs.push({ id: 'manual', label: 'Ajoutes manuellement', count: manualItems.length });
   }
   if (tabs.length === 0 && (container?.items?.length ?? 0) > 0) {
     tabs.push({ id: 'all', label: 'Tous les objets', count: container!.items!.length });
@@ -155,7 +159,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       (f) => f.size <= maxSize && (f.type.startsWith('image/') || /\.(jpe?g|png|webp)$/i.test(f.name))
     );
     if (accepted.length === 0) {
-      alert('Fichiers non valides ou trop volumineux (max 10 Mo).');
+      toast.warning('Fichiers non valides ou trop volumineux (max 10 Mo).');
       return;
     }
     try {
@@ -163,7 +167,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       await containerApi.addImages(id, accepted);
       loadContainer();
     } catch (err: unknown) {
-      alert(getApiError(err, 'Erreur lors de l\'ajout des photos'));
+      toast.error(getApiError(err, 'Erreur lors de l\'ajout des photos'));
     } finally {
       setUploading(false);
     }
@@ -179,7 +183,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
         await containerApi.addImages(id, acceptedFiles);
         loadContainer();
       } catch (err: unknown) {
-        alert(getApiError(err, 'Erreur lors de l\'ajout des photos'));
+        toast.error(getApiError(err, 'Erreur lors de l\'ajout des photos'));
       } finally {
         setUploading(false);
       }
@@ -202,14 +206,20 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
     if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
 
-  const handleDeleteImage = async (imageId: string) => {
-    if (!id || !confirm('Supprimer cette photo ?')) return;
+  const handleDeleteImage = (imageId: string) => {
+    if (!id) return;
+    setConfirmDeleteImageId(imageId);
+  };
+
+  const executeDeleteImage = async () => {
+    if (!id || !confirmDeleteImageId) return;
     try {
-      setDeletingId(imageId);
-      await containerApi.deleteImage(id, imageId);
+      setDeletingId(confirmDeleteImageId);
+      await containerApi.deleteImage(id, confirmDeleteImageId);
       loadContainer();
     } catch {
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
+      throw new Error();
     } finally {
       setDeletingId(null);
     }
@@ -222,7 +232,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       await containerApi.analyze(id, selectedVisionModel);
       await loadContainer(true);
     } catch (err: unknown) {
-      alert(getApiError(err, 'Erreur lors du lancement de l\'analyse'));
+      toast.error(getApiError(err, 'Erreur lors du lancement de l\'analyse'));
     } finally {
       setAnalyzing(false);
     }
@@ -239,20 +249,26 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       });
       await loadContainer(true);
     } catch (err: unknown) {
-      alert(getApiError(err, 'Erreur lors de l\'ajout'));
+      toast.error(getApiError(err, 'Erreur lors de l\'ajout'));
     } finally {
       setAddingItem(false);
     }
   };
 
-  const handleDeleteItem = async (itemId: string) => {
-    if (!id || !confirm('Supprimer cet objet de la liste ?')) return;
+  const handleDeleteItem = (itemId: string) => {
+    if (!id) return;
+    setConfirmDeleteItemId(itemId);
+  };
+
+  const executeDeleteItem = async () => {
+    if (!id || !confirmDeleteItemId) return;
     try {
-      setDeletingItemId(itemId);
-      await containerApi.deleteItem(id, itemId);
+      setDeletingItemId(confirmDeleteItemId);
+      await containerApi.deleteItem(id, confirmDeleteItemId);
       await loadContainer(true);
     } catch {
-      alert('Erreur lors de la suppression');
+      toast.error('Erreur lors de la suppression');
+      throw new Error();
     } finally {
       setDeletingItemId(null);
     }
@@ -274,7 +290,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       setContainer((c) => (c ? { ...c, name: nameInput.trim() } : c));
       cancelEditName();
     } catch (err: unknown) {
-      alert(getApiError(err, 'Erreur'));
+      toast.error(getApiError(err, 'Erreur'));
     } finally {
       setSavingName(false);
     }
@@ -310,7 +326,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
       await loadContainer(true);
       cancelEditItem();
     } catch (err: unknown) {
-      alert(getApiError(err, 'Erreur'));
+      toast.error(getApiError(err, 'Erreur'));
     } finally {
       setSavingItemId(null);
     }
@@ -461,8 +477,8 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
         <Alert className="mb-4 border-amber-500/50 bg-amber-50 text-amber-900 dark:border-amber-500/50 dark:bg-amber-950 dark:text-amber-100">
           <AlertDescription>
             {container.analysisMetadata?.errors?.length
-              ? `Analyse terminée avec des erreurs : ${container.analysisMetadata.errors.join(' ; ')}`
-              : container.analysisMetadata?.error ?? 'L\'analyse a échoué.'}
+              ? `Analyse terminee avec des erreurs : ${container.analysisMetadata.errors.join(' ; ')}`
+              : container.analysisMetadata?.error ?? 'L\'analyse a echoue.'}
           </AlertDescription>
         </Alert>
       )}
@@ -520,13 +536,13 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
         <div className="flex flex-col items-center justify-center p-6">
           <FontAwesomeIcon icon={faUpload} className={`mb-2 text-4xl ${config.accentColor}`} />
           <p className="text-center text-muted-foreground">
-            {isDragActive ? 'Déposez les images ici' : isMobile ? 'Ou glissez des photos ici' : 'Glissez des photos ici ou cliquez pour sélectionner'}
+            {isDragActive ? 'Deposez les images ici' : isMobile ? 'Ou glissez des photos ici' : 'Glissez des photos ici ou cliquez pour selectionner'}
           </p>
           {uploading && <Spinner className="mt-2 size-6" />}
         </div>
       </div>
 
-      {/* Liste des photos (avec rectangles de détection si analyse faite) */}
+      {/* Liste des photos (avec rectangles de detection si analyse faite) */}
       {images.length > 0 && (
         <Card className="shadow-md">
           <CardHeader>
@@ -590,11 +606,11 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
         </Card>
       )}
 
-      {/* Objets à considérer pour l'assurance (suggestions) */}
+      {/* Objets a considerer pour l'assurance (suggestions) */}
       <Card className="mt-6 shadow-md">
         <CardContent className="p-6">
           <label className="mb-2 block text-sm text-muted-foreground">
-            Objets à considérer pour l'assurance (suggestions)
+            Objets a considerer pour l'assurance (suggestions)
           </label>
           <select
             className="max-w-md"
@@ -610,7 +626,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
             }}
             disabled={addingItem}
           >
-            <option value="">Choisir un objet à ajouter à l'inventaire…</option>
+            <option value="">Choisir un objet a ajouter a l'inventaire…</option>
             {SUGGESTED_OBJECTS.map((obj, idx) => (
               <option key={`${obj.name}-${idx}`} value={idx}>
                 {obj.name} ({categoryLabels[obj.category] ?? obj.category})
@@ -620,7 +636,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
         </CardContent>
       </Card>
 
-      {/* Objets détectés / inventaire – onglets par modèle pour comparer */}
+      {/* Objets detectes / inventaire -- onglets par modele pour comparer */}
       {(container?.items?.length ?? 0) > 0 && (
         <Card className="mt-6 shadow-md">
           <CardHeader>
@@ -816,10 +832,10 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
                                 return (
                                   <span
                                     className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"
-                                    title={`Source: Google Shopping | ${String(pricing.sampleCount)} résultat(s) | Recherche: ${String(pricing.searchQuery)}`}
+                                    title={`Source: Google Shopping | ${String(pricing.sampleCount)} resultat(s) | Recherche: ${String(pricing.searchQuery)}`}
                                   >
                                     <FontAwesomeIcon icon={faDollarSign} className="mr-1" />
-                                    estimé
+                                    estime
                                   </span>
                                 );
                               })()}
@@ -835,6 +851,24 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
           </CardContent>
         </Card>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteImageId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteImageId(null); }}
+        title="Supprimer la photo"
+        description="Supprimer cette photo ?"
+        confirmLabel="Supprimer"
+        onConfirm={executeDeleteImage}
+      />
+
+      <ConfirmDialog
+        open={confirmDeleteItemId !== null}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteItemId(null); }}
+        title="Supprimer l'objet"
+        description="Supprimer cet objet de la liste ?"
+        confirmLabel="Supprimer"
+        onConfirm={executeDeleteItem}
+      />
     </div>
   );
 }
