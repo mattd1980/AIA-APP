@@ -212,3 +212,49 @@ export function translateToEnglish(frenchName: string): string {
 
   return translated.filter(Boolean).join(' ');
 }
+
+/**
+ * French-to-English category translations for appending to search queries.
+ * Maps AI-detected category names to English equivalents.
+ */
+const categoryTranslations: Record<string, string> = {
+  electronique: 'electronics',
+  electronics: 'electronics',
+  informatique: 'computer',
+  meuble: 'furniture',
+  meubles: 'furniture',
+  mobilier: 'furniture',
+  electromenager: 'appliance',
+  cuisine: 'kitchen',
+  eclairage: 'lighting',
+  decoration: 'decor',
+  textile: 'textile',
+  literie: 'bedding',
+  jardin: 'garden',
+  exterieur: 'outdoor',
+  musique: 'musical instrument',
+  sport: 'sports',
+  jouet: 'toy',
+  jouets: 'toys',
+  vetement: 'clothing',
+  vetements: 'clothing',
+  bijoux: 'jewelry',
+  art: 'art',
+  outil: 'tool',
+  outils: 'tools',
+  outillage: 'tools',
+  plomberie: 'plumbing',
+  securite: 'security',
+  bureau: 'office',
+  salle_de_bain: 'bathroom',
+  rangement: 'storage',
+};
+
+/**
+ * Translate a French category name to English for search query enrichment.
+ * Returns the English category or the original string (lowercased, accents removed) if unknown.
+ */
+export function translateCategoryToEnglish(category: string): string {
+  const normalized = removeAccents(category.toLowerCase().trim());
+  return categoryTranslations[normalized] ?? normalized;
+}

@@ -24,8 +24,8 @@ import { dataForSeoService } from './dataforseo.service';
 const mockSearch = dataForSeoService.search as ReturnType<typeof vi.fn>;
 
 describe('buildSearchQuery', () => {
-  it('translates French name to English keywords', () => {
-    expect(buildSearchQuery({ itemName: 'Canape en cuir marron' })).toBe('sofa leather brown');
+  it('translates French name to English keywords with buy prefix', () => {
+    expect(buildSearchQuery({ itemName: 'Canape en cuir marron' })).toBe('buy sofa leather brown');
   });
 
   it('combines translated name with brand and model', () => {
@@ -34,15 +34,31 @@ describe('buildSearchQuery', () => {
       brand: 'IKEA',
       model: 'KIVIK',
     };
-    expect(buildSearchQuery(input)).toBe('sofa leather brown IKEA KIVIK');
+    expect(buildSearchQuery(input)).toBe('buy sofa leather brown IKEA KIVIK');
   });
 
   it('preserves unknown words (brands/models) in item name', () => {
-    expect(buildSearchQuery({ itemName: 'Televiseur Samsung' })).toBe('television samsung');
+    expect(buildSearchQuery({ itemName: 'Televiseur Samsung' })).toBe('buy television samsung');
   });
 
   it('returns empty string when name is empty', () => {
     expect(buildSearchQuery({ itemName: '' })).toBe('');
+  });
+
+  it('appends translated category when provided', () => {
+    const input: PricingInput = {
+      itemName: 'Televiseur Samsung',
+      category: 'Electronique',
+    };
+    expect(buildSearchQuery(input)).toBe('buy television samsung electronics');
+  });
+
+  it('appends category even without brand/model', () => {
+    const input: PricingInput = {
+      itemName: 'Lampe',
+      category: 'Eclairage',
+    };
+    expect(buildSearchQuery(input)).toBe('buy lamp lighting');
   });
 });
 
@@ -102,10 +118,10 @@ describe('pricingService.estimatePrice', () => {
     Object.defineProperty(dataForSeoService, 'isConfigured', { value: originalValue, writable: true });
   });
 
-  it('returns zeros when no CAD results found', async () => {
+  it('returns zeros when no CAD or USD results found', async () => {
     Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
     mockSearch.mockResolvedValue([
-      { title: 'Item', price: 50, currency: 'USD', seller: 'Amazon', url: '' },
+      { title: 'Item', price: 50, currency: 'EUR', seller: 'Amazon', url: '' },
     ]);
 
     const result = await pricingService.estimatePrice({ itemName: 'Laptop' });
@@ -133,6 +149,68 @@ describe('pricingService.estimatePrice', () => {
     expect(result.pricingMetadata!.medianPrice).toBe(150);
     expect(result.pricingMetadata!.sampleCount).toBe(3);
     expect(result.pricingMetadata!.pricingSource).toBe('dataforseo');
+  });
+
+  it('falls back to USD when fewer than 2 CAD results', async () => {
+    Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
+    mockSearch.mockResolvedValue([
+      { title: 'CAD Item', price: 100, currency: 'CAD', seller: 'S1', url: '' },
+      { title: 'USD Item', price: 50, currency: 'USD', seller: 'S2', url: '' },
+    ]);
+
+    const result = await pricingService.estimatePrice({ itemName: 'Widget' });
+
+    // CAD: 100, USD: 50 * 1.38 = 69
+    // Median of [69, 100] = 84.5
+    expect(result.estimatedValue).toBe(84.5);
+    expect(result.pricingMetadata!.sampleCount).toBe(2);
+  });
+
+  it('uses only CAD when 2+ CAD results exist (ignores USD)', async () => {
+    Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
+    mockSearch.mockResolvedValue([
+      { title: 'A', price: 100, currency: 'CAD', seller: 'S1', url: '' },
+      { title: 'B', price: 200, currency: 'CAD', seller: 'S2', url: '' },
+      { title: 'C', price: 80, currency: 'USD', seller: 'S3', url: '' },
+    ]);
+
+    const result = await pricingService.estimatePrice({ itemName: 'Widget' });
+
+    // Only CAD: [100, 200], median = 150
+    expect(result.estimatedValue).toBe(150);
+    expect(result.pricingMetadata!.sampleCount).toBe(2);
+  });
+
+  it('uses USD-only results when no CAD available', async () => {
+    Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
+    mockSearch.mockResolvedValue([
+      { title: 'USD A', price: 100, currency: 'USD', seller: 'S1', url: '' },
+      { title: 'USD B', price: 200, currency: 'USD', seller: 'S2', url: '' },
+    ]);
+
+    const result = await pricingService.estimatePrice({ itemName: 'Widget' });
+
+    // USD: 100*1.38=138, 200*1.38=276 → median=207
+    expect(result.estimatedValue).toBe(207);
+    expect(result.pricingMetadata!.sampleCount).toBe(2);
+  });
+
+  it('includes buy prefix in search query', async () => {
+    Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
+    mockSearch.mockResolvedValue([]);
+
+    await pricingService.estimatePrice({ itemName: 'Laptop' });
+
+    expect(mockSearch).toHaveBeenCalledWith('buy laptop');
+  });
+
+  it('includes category in search query', async () => {
+    Object.defineProperty(dataForSeoService, 'isConfigured', { value: true, writable: true });
+    mockSearch.mockResolvedValue([]);
+
+    await pricingService.estimatePrice({ itemName: 'Laptop', category: 'Informatique' });
+
+    expect(mockSearch).toHaveBeenCalledWith('buy laptop computer');
   });
 });
 

@@ -1,6 +1,6 @@
 import { dataForSeoService } from './dataforseo.service';
 import type { ShoppingResult } from './dataforseo.service';
-import { translateToEnglish } from '../constants/item-translations';
+import { translateToEnglish, translateCategoryToEnglish } from '../constants/item-translations';
 
 export interface PricingInput {
   itemName: string;
@@ -25,14 +25,23 @@ export interface PricingResult {
 }
 
 const REPLACEMENT_BUFFER = parseFloat(process.env.INSURANCE_REPLACEMENT_BUFFER ?? '1.3');
+const USD_TO_CAD_RATE = parseFloat(process.env.USD_TO_CAD_RATE ?? '1.38');
 const INTER_REQUEST_DELAY_MS = 200;
+const MIN_CAD_RESULTS_BEFORE_USD_FALLBACK = 2;
 
 export function buildSearchQuery(item: PricingInput): string {
   const parts: string[] = [];
   if (item.itemName) parts.push(translateToEnglish(item.itemName));
   if (item.brand) parts.push(item.brand);
   if (item.model) parts.push(item.model);
-  return parts.join(' ');
+  if (item.category) {
+    const categoryEn = translateCategoryToEnglish(item.category);
+    if (categoryEn) parts.push(categoryEn);
+  }
+
+  const base = parts.join(' ');
+  if (!base.trim()) return '';
+  return `buy ${base}`;
 }
 
 export function computeMedian(values: number[]): number {
@@ -58,6 +67,24 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function toCadPrices(results: ShoppingResult[]): number[] {
+  const cadResults = results.filter(
+    (r) => r.currency === 'CAD' && r.price > 0
+  );
+
+  if (cadResults.length >= MIN_CAD_RESULTS_BEFORE_USD_FALLBACK) {
+    return cadResults.map((r) => r.price);
+  }
+
+  // Fallback: include USD results converted to CAD
+  const cadPrices = cadResults.map((r) => r.price);
+  const usdConverted = results
+    .filter((r) => r.currency === 'USD' && r.price > 0)
+    .map((r) => Math.round(r.price * USD_TO_CAD_RATE * 100) / 100);
+
+  return [...cadPrices, ...usdConverted];
+}
+
 class PricingService {
   async estimatePrice(item: PricingInput): Promise<PricingResult> {
     if (!dataForSeoService.isConfigured) {
@@ -71,12 +98,9 @@ class PricingService {
 
     const results = await dataForSeoService.search(searchQuery);
 
-    // Filter to CAD only
-    const cadResults = results.filter(
-      (r: ShoppingResult) => r.currency === 'CAD' && r.price > 0
-    );
+    const cadPrices = toCadPrices(results);
 
-    if (cadResults.length === 0) {
+    if (cadPrices.length === 0) {
       return {
         estimatedValue: 0,
         replacementValue: 0,
@@ -91,8 +115,7 @@ class PricingService {
       };
     }
 
-    const rawPrices = cadResults.map((r: ShoppingResult) => r.price);
-    const filteredPrices = filterOutliers(rawPrices);
+    const filteredPrices = filterOutliers(cadPrices);
     const medianPrice = computeMedian(filteredPrices);
 
     const estimatedValue = Math.round(medianPrice * 100) / 100;

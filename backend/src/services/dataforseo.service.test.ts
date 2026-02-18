@@ -38,6 +38,24 @@ function product(title: string, price: number, currency = 'CAD', seller = '', ur
   };
 }
 
+function shoppingBlock(items: unknown[]) {
+  return { type: 'shopping', items };
+}
+
+function shoppingItem(title: string, price: number, currency = 'CAD', source = '', url = '') {
+  return { title, price: { current: price, currency }, source, url };
+}
+
+function paidShoppingAd(title: string, price: number, currency = 'CAD', source = '', shoppingUrl = '') {
+  return {
+    type: 'paid',
+    title,
+    price: { current: price, currency },
+    source,
+    shopping_url: shoppingUrl,
+  };
+}
+
 describe('DataForSeoService', () => {
   let fetchSpy: ReturnType<typeof vi.fn>;
 
@@ -72,7 +90,8 @@ describe('DataForSeoService', () => {
     const { dataForSeoService } = await import('./dataforseo.service');
     await dataForSeoService.search('test query');
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    // May be called once (success) or twice (if first call triggers retry logic on signal)
+    expect(fetchSpy).toHaveBeenCalled();
     const [url, options] = fetchSpy.mock.calls[0];
 
     expect(url).toBe('https://api.dataforseo.com/v3/serp/google/organic/live/advanced');
@@ -113,7 +132,99 @@ describe('DataForSeoService', () => {
     expect(results[1].seller).toBe('BestBuy.ca');
   });
 
-  it('ignores non-popular_products SERP items and products without price', async () => {
+  it('parses shopping block results correctly', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [
+      shoppingBlock([
+        shoppingItem('Laptop A', 899.99, 'CAD', 'BestBuy.ca', 'https://bestbuy.ca/laptop'),
+        shoppingItem('Laptop B', 1099.99, 'USD', 'Amazon.com', 'https://amazon.com/laptop'),
+      ]),
+    ];
+
+    fetchSpy.mockResolvedValue(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('laptop');
+
+    expect(results).toHaveLength(2);
+    expect(results[0]).toEqual({
+      title: 'Laptop A',
+      price: 899.99,
+      currency: 'CAD',
+      seller: 'BestBuy.ca',
+      url: 'https://bestbuy.ca/laptop',
+    });
+    expect(results[1]).toEqual({
+      title: 'Laptop B',
+      price: 1099.99,
+      currency: 'USD',
+      seller: 'Amazon.com',
+      url: 'https://amazon.com/laptop',
+    });
+  });
+
+  it('parses paid shopping ads with shopping_url', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [
+      paidShoppingAd('Keyboard X', 79.99, 'CAD', 'Newegg.ca', 'https://newegg.ca/keyboard'),
+    ];
+
+    fetchSpy.mockResolvedValue(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('keyboard');
+
+    expect(results).toHaveLength(1);
+    expect(results[0]).toEqual({
+      title: 'Keyboard X',
+      price: 79.99,
+      currency: 'CAD',
+      seller: 'Newegg.ca',
+      url: 'https://newegg.ca/keyboard',
+    });
+  });
+
+  it('ignores paid results without shopping_url', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [
+      { type: 'paid', title: 'Ad without shopping', price: { current: 50, currency: 'CAD' } },
+    ];
+
+    fetchSpy.mockResolvedValue(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('ad test');
+
+    expect(results).toHaveLength(0);
+  });
+
+  it('extracts from multiple SERP types in same response', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [
+      popularProducts([product('Pop Item', 25, 'CAD', 'S1')]),
+      shoppingBlock([shoppingItem('Shop Item', 30, 'CAD', 'S2')]),
+      paidShoppingAd('Ad Item', 35, 'CAD', 'S3', 'https://example.com'),
+      { type: 'organic', title: 'Organic result' },
+    ];
+
+    fetchSpy.mockResolvedValue(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('mixed');
+
+    expect(results).toHaveLength(3);
+    expect(results.map((r) => r.title)).toEqual(['Pop Item', 'Shop Item', 'Ad Item']);
+  });
+
+  it('ignores non-shopping SERP items and products without price', async () => {
     process.env.DATAFORSEO_LOGIN = 'user@test.com';
     process.env.DATAFORSEO_PASSWORD = 'secret123';
 
@@ -150,6 +261,86 @@ describe('DataForSeoService', () => {
 
     expect(first).toEqual(second);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses short TTL for empty results', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    // First call returns empty results
+    fetchSpy.mockResolvedValue(createMockResponse(buildApiResponse([])));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+
+    await dataForSeoService.search('empty test');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Immediately after, cache should still be valid
+    await dataForSeoService.search('empty test');
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+    // Advance time past empty TTL (5 minutes)
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(6 * 60 * 1000); // 6 minutes
+
+    // Now it should re-fetch
+    await dataForSeoService.search('empty test');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+
+    vi.useRealTimers();
+  });
+
+  it('retries once on fetch failure', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [popularProducts([product('Retry Success', 50, 'CAD', 'S')])];
+
+    // First call fails, second succeeds
+    fetchSpy
+      .mockRejectedValueOnce(new Error('Network error'))
+      .mockResolvedValueOnce(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('retry test');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe('Retry Success');
+  });
+
+  it('retries once on non-OK HTTP response', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    const serpItems = [popularProducts([product('After 500', 75, 'CAD', 'S')])];
+
+    // First call returns 500, second succeeds
+    fetchSpy
+      .mockResolvedValueOnce(createMockResponse({}, false, 500))
+      .mockResolvedValueOnce(createMockResponse(buildApiResponse(serpItems)));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('http retry test');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe('After 500');
+  });
+
+  it('returns empty when both retries fail', async () => {
+    process.env.DATAFORSEO_LOGIN = 'user@test.com';
+    process.env.DATAFORSEO_PASSWORD = 'secret123';
+
+    fetchSpy
+      .mockRejectedValueOnce(new Error('Network error 1'))
+      .mockRejectedValueOnce(new Error('Network error 2'));
+
+    const { dataForSeoService } = await import('./dataforseo.service');
+    const results = await dataForSeoService.search('double fail');
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(results).toEqual([]);
   });
 
   it('clearCache forces a re-fetch on next call', async () => {
