@@ -1,9 +1,12 @@
 import prisma from '../database/client';
+import type { ItemCategory, ItemCondition, Prisma } from '@prisma/client';
 import { InventoryStatus, InventoryResponse } from '../types';
 import { openaiService } from './openai.service';
 import { pricingService } from './pricing.service';
 import { calculationService } from './calculation.service';
 import { imageService } from './image.service';
+import { AppError } from '../utils/app-error';
+import { getErrorMessage } from '../utils/get-error-message';
 
 class InventoryService {
   async createInventory(userId: string, name?: string) {
@@ -121,8 +124,8 @@ class InventoryService {
         processedImages++;
         totalItemsFound += items.length;
         console.log(`[Inventory ${inventoryId}] Image ${i + 1} processed successfully: ${items.length} item(s) created`);
-      } catch (error: any) {
-        const errorMessage = error.message || 'Unknown error';
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error, 'Unknown error');
         console.error(`[Inventory ${inventoryId}] Error processing image ${i + 1} (${image.fileName}):`, errorMessage);
         errors.push(`Image ${i + 1} (${image.fileName}): ${errorMessage}`);
       }
@@ -138,7 +141,7 @@ class InventoryService {
     const totalValue = items.reduce((sum, item) => sum + Number(item.replacementValue), 0);
 
     // Update inventory status
-    const finalMetadata: any = {
+    const finalMetadata: Record<string, unknown> = {
       itemCount: items.length,
       imageCount: images.length,
       processedImages,
@@ -156,7 +159,7 @@ class InventoryService {
         status: items.length > 0 ? 'completed' : (errors.length > 0 ? 'error' : 'completed'),
         totalEstimatedValue: totalValue,
         recommendedInsuranceAmount: totalValue,
-        metadata: finalMetadata,
+        metadata: finalMetadata as Prisma.InputJsonObject,
       },
     });
 
@@ -207,11 +210,11 @@ class InventoryService {
       status: inventory.status as InventoryStatus,
       totalEstimatedValue: Number(inventory.totalEstimatedValue),
       recommendedInsuranceAmount: Number(inventory.recommendedInsuranceAmount),
-      metadata: inventory.metadata as Record<string, any>,
+      metadata: inventory.metadata as Record<string, unknown>,
       createdAt: inventory.createdAt,
       updatedAt: inventory.updatedAt,
       items: inventory.items.map((item) => {
-        const aiAnalysis = item.aiAnalysis as Record<string, any>;
+        const aiAnalysis = item.aiAnalysis as Record<string, unknown>;
         const sourceImageId = aiAnalysis?.sourceImageId;
         
         // Get images: direct relation + source image from metadata
@@ -240,17 +243,17 @@ class InventoryService {
         
         return {
           id: item.id,
-          category: item.category as any,
+          category: item.category as ItemCategory,
           itemName: item.itemName,
           brand: item.brand || undefined,
           model: item.model || undefined,
-          condition: item.condition as any,
+          condition: item.condition as ItemCondition,
           estimatedAge: item.estimatedAge || undefined,
           notes: item.notes || undefined,
           estimatedValue: Number(item.estimatedValue),
           replacementValue: Number(item.replacementValue),
-          aiAnalysis: aiAnalysis,
-          priceData: item.priceData as Record<string, any>,
+          aiAnalysis: aiAnalysis as Record<string, unknown>,
+          priceData: item.priceData as Record<string, unknown>,
           images: allImages,
         };
       }),
@@ -266,7 +269,7 @@ class InventoryService {
 
   async listInventories(userId: string, page: number, limit: number, status?: string) {
     const skip = (page - 1) * limit;
-    const where: any = { userId };
+    const where: Prisma.InventoryWhereInput = { userId };
     if (status) {
       where.status = status as InventoryStatus;
     }
@@ -297,7 +300,7 @@ class InventoryService {
     return {
       data: data.map((inv) => ({
         id: inv.id,
-        name: (inv as any).name || undefined,
+        name: (inv.name as string | null) || undefined,
         status: inv.status,
         totalEstimatedValue: Number(inv.totalEstimatedValue),
         itemCount: inv._count.items,
@@ -333,7 +336,7 @@ class InventoryService {
       where: { id: inventoryId, userId } 
     });
     if (!inventory) {
-      throw new Error('Inventory not found');
+      throw AppError.notFound('Inventory');
     }
 
     // Verify item exists and belongs to inventory
@@ -345,16 +348,16 @@ class InventoryService {
     });
 
     if (!item) {
-      throw new Error('Item not found');
+      throw AppError.notFound('Item');
     }
 
     // Build update data
-    const updateData: any = {};
+    const updateData: Prisma.InventoryItemUpdateInput = {};
     if (updates.itemName !== undefined) updateData.itemName = updates.itemName;
-    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.category !== undefined) updateData.category = updates.category as ItemCategory;
     if (updates.brand !== undefined) updateData.brand = updates.brand || null;
     if (updates.model !== undefined) updateData.model = updates.model || null;
-    if (updates.condition !== undefined) updateData.condition = updates.condition;
+    if (updates.condition !== undefined) updateData.condition = updates.condition as ItemCondition;
     if (updates.estimatedAge !== undefined) updateData.estimatedAge = updates.estimatedAge || null;
     if (updates.notes !== undefined) updateData.notes = updates.notes || null;
     if (updates.estimatedValue !== undefined) updateData.estimatedValue = updates.estimatedValue;
@@ -403,7 +406,7 @@ class InventoryService {
       where: { id: inventoryId, userId } 
     });
     if (!inventory) {
-      throw new Error('Inventory not found');
+      throw AppError.notFound('Inventory');
     }
 
     // Verify item exists and belongs to inventory
@@ -415,7 +418,7 @@ class InventoryService {
     });
 
     if (!item) {
-      throw new Error('Item not found');
+      throw AppError.notFound('Item');
     }
 
     // Delete the item (cascade will handle related images)
@@ -444,10 +447,10 @@ class InventoryService {
       where: { id, userId } 
     });
     if (!inventory) {
-      throw new Error('Inventory not found');
+      throw AppError.notFound('Inventory');
     }
 
-    const updateData: any = {};
+    const updateData: Prisma.InventoryUpdateInput = {};
     if (updates.name !== undefined) updateData.name = updates.name || null;
 
     return await prisma.inventory.update({
@@ -461,7 +464,7 @@ class InventoryService {
       where: { id: inventoryId, userId } 
     });
     if (!inventory) {
-      throw new Error('Inventory not found');
+      throw AppError.notFound('Inventory');
     }
 
     // Get current max uploadOrder
@@ -491,7 +494,7 @@ class InventoryService {
       where: { id, userId } 
     });
     if (!inventory) {
-      throw new Error('Inventory not found');
+      throw AppError.notFound('Inventory');
     }
 
     await prisma.inventory.delete({ where: { id } });

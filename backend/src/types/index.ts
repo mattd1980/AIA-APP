@@ -9,7 +9,7 @@ export interface CreateInventoryDto {
 
 export interface UpdateInventoryDto {
   status?: InventoryStatus;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface InventoryResponse {
@@ -18,7 +18,7 @@ export interface InventoryResponse {
   status: InventoryStatus;
   totalEstimatedValue: number;
   recommendedInsuranceAmount: number;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   createdAt: Date;
   updatedAt: Date;
   items?: InventoryItemResponse[];
@@ -36,8 +36,8 @@ export interface InventoryItemResponse {
   notes?: string;
   estimatedValue: number;
   replacementValue: number;
-  aiAnalysis: Record<string, any>;
-  priceData: Record<string, any>;
+  aiAnalysis: Record<string, unknown>;
+  priceData: Record<string, unknown>;
 }
 
 export interface InventoryImageResponse {

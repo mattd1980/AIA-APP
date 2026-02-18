@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUserShield, faLock } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
+import { getApiError } from '@/utils/get-api-error';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
 
 export default function AdminLogin({
   onSuccess,
@@ -27,80 +34,72 @@ export default function AdminLogin({
         window.location.href = '/admin';
         return;
       }
-      setError('Accès réservé à l\'administrateur. Utilisez le compte admin.');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Email ou mot de passe incorrect');
+      setError('Acces reserve a l\'administrateur. Utilisez le compte admin.');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Email ou mot de passe incorrect'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-base-200 px-4">
-      <div className="card bg-base-100 shadow-2xl w-full max-w-sm">
-        <div className="card-body">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+      <Card className="w-full max-w-sm shadow-2xl">
+        <CardContent className="p-6">
+          <h1 className="flex items-center gap-2 text-2xl font-bold">
             <FontAwesomeIcon icon={faUserShield} />
             Admin
           </h1>
-          <p className="text-sm text-base-content/70">
+          <p className="text-sm text-muted-foreground">
             Connectez-vous avec le mot de passe super admin.
           </p>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Email admin</span>
-              </label>
-              <label className="input-group">
-                <span>
+          <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="admin-email">Email admin</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
                   <FontAwesomeIcon icon={faUserShield} />
                 </span>
-                <input
+                <Input
+                  id="admin-email"
                   type="email"
                   placeholder="admin@local"
-                  className="input input-bordered w-full"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
-              </label>
+              </div>
             </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Mot de passe</span>
-              </label>
-              <label className="input-group">
-                <span>
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Mot de passe</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">
                   <FontAwesomeIcon icon={faLock} />
                 </span>
-                <input
+                <Input
+                  id="admin-password"
                   type="password"
-                  className="input input-bordered w-full"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-              </label>
+              </div>
             </div>
             {error && (
-              <div className="alert alert-error text-sm">
-                <span>{error}</span>
-              </div>
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-            <button
-              type="submit"
-              className="btn btn-primary w-full"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
-                <span className="loading loading-spinner" />
+                <Spinner className="size-4" />
               ) : (
-                'Accéder au tableau de bord'
+                'Acceder au tableau de bord'
               )}
-            </button>
+            </Button>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

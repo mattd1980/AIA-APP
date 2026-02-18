@@ -1,5 +1,6 @@
 import { dataForSeoService } from './dataforseo.service';
 import type { ShoppingResult } from './dataforseo.service';
+import { translateToEnglish } from '../constants/item-translations';
 
 export interface PricingInput {
   itemName: string;
@@ -28,9 +29,9 @@ const INTER_REQUEST_DELAY_MS = 200;
 
 export function buildSearchQuery(item: PricingInput): string {
   const parts: string[] = [];
-  if (item.itemName) parts.push(`"${item.itemName}"`);
-  if (item.brand) parts.push(`"${item.brand}"`);
-  if (item.model) parts.push(`"${item.model}"`);
+  if (item.itemName) parts.push(translateToEnglish(item.itemName));
+  if (item.brand) parts.push(item.brand);
+  if (item.model) parts.push(item.model);
   return parts.join(' ');
 }
 

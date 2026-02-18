@@ -1,9 +1,10 @@
 import { useState, useCallback } from 'react';
-import { roomsApi, safesApi } from '@/services/api';
+import { createContainerApi } from '@/services/api';
+import type { ContainerType } from '@/constants/container-config';
 
 export function usePriceEstimation(
   id: string | undefined,
-  type: 'room' | 'safe',
+  type: ContainerType,
   onComplete?: () => void
 ) {
   const [estimating, setEstimating] = useState(false);
@@ -14,11 +15,8 @@ export function usePriceEstimation(
     try {
       setEstimating(true);
       setError(null);
-      if (type === 'room') {
-        await roomsApi.reEstimatePrices(id);
-      } else {
-        await safesApi.reEstimatePrices(id);
-      }
+      const containerApi = createContainerApi(type);
+      await containerApi.reEstimatePrices(id);
       onComplete?.();
     } catch (err: unknown) {
       const message =

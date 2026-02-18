@@ -396,13 +396,13 @@ export default function InventoryDetail() {
                 </summary>
                 <div className="collapse-content">
                   <div className="text-sm space-y-2">
-                    <p><strong>Images traitées:</strong> {inventory.metadata.imageCount || 0}</p>
-                    <p><strong>Objets trouvés:</strong> {inventory.metadata.itemCount || 0}</p>
-                    {inventory.metadata.errors && inventory.metadata.errors.length > 0 && (
+                    <p><strong>Images traitées:</strong> {String(inventory.metadata.imageCount ?? 0)}</p>
+                    <p><strong>Objets trouvés:</strong> {String(inventory.metadata.itemCount ?? 0)}</p>
+                    {Array.isArray(inventory.metadata.errors) && inventory.metadata.errors.length > 0 && (
                       <div className="mt-2">
                         <p className="font-semibold text-error">Erreurs:</p>
                         <ul className="list-disc list-inside text-xs">
-                          {inventory.metadata.errors.map((error: string, idx: number) => (
+                          {(inventory.metadata.errors as string[]).map((error: string, idx: number) => (
                             <li key={idx} className="text-error">{error}</li>
                           ))}
                         </ul>

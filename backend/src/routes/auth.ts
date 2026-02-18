@@ -3,16 +3,15 @@ import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { authService } from '../services/auth.service';
-import { AuthenticatedRequest } from '../middleware/auth';
 
 const router = Router();
 
-// Configure Local Strategy: email + password (admin: admin@local + ADMIN_PASSWORD, or regular user with passwordHash)
+// Configure Local Strategy
 passport.use(
   'local',
   new LocalStrategy(
     {
-      usernameField: 'username', // frontend sends email as "username"
+      usernameField: 'username',
       passwordField: 'password',
     },
     async (username: string, password: string, done) => {
@@ -27,7 +26,7 @@ passport.use(
           picture: user.picture ?? undefined,
         };
         return done(null, passportUser);
-      } catch (error: any) {
+      } catch (error: unknown) {
         return done(error, false);
       }
     }
@@ -40,7 +39,6 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const GOOGLE_ENABLED = !!(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 
 if (GOOGLE_ENABLED) {
-  // Callback URL must be the BACKEND URL (Google redirects the user here after consent).
   const backendUrl = (process.env.BACKEND_URL || process.env.GOOGLE_CALLBACK_URL || '').replace(/\/$/, '');
   const callbackURL = process.env.GOOGLE_CALLBACK_URL
     ? process.env.GOOGLE_CALLBACK_URL.replace(/\/$/, '')
@@ -59,26 +57,25 @@ if (GOOGLE_ENABLED) {
       async (accessToken, refreshToken, profile, done) => {
         try {
           const user = await authService.findOrCreateUser(profile);
-          // Convert Prisma null to undefined for Passport compatibility
           const passportUser = {
             ...user,
             name: user.name ?? undefined,
             picture: user.picture ?? undefined,
           };
           return done(null, passportUser);
-        } catch (error: any) {
-          return done(error, false);
+        } catch (error: unknown) {
+          return done(error as Error, false);
         }
       }
     )
   );
-  console.log('✅ Google OAuth enabled');
+  console.log('Google OAuth enabled');
 } else {
-  console.log('⚠️  Google OAuth disabled - credentials not configured');
+  console.log('Google OAuth disabled - credentials not configured');
 }
 
 // Serialize user for session
-passport.serializeUser((user: any, done) => {
+passport.serializeUser((user: Express.User, done) => {
   done(null, user.id);
 });
 
@@ -87,7 +84,6 @@ passport.deserializeUser(async (id: string, done) => {
   try {
     const user = await authService.getUserById(id);
     if (user) {
-      // Convert Prisma null to undefined for Passport compatibility
       const passportUser = {
         ...user,
         name: user.name ?? undefined,
@@ -104,7 +100,7 @@ passport.deserializeUser(async (id: string, done) => {
 
 // Username/password login route
 router.post('/login', (req: Request, res: Response, next) => {
-  passport.authenticate('local', (err: any, user: any, info: any) => {
+  passport.authenticate('local', (err: Error | null, user: Express.User | false, info: { message: string } | undefined) => {
     if (err) {
       return res.status(500).json({ error: 'Erreur d\'authentification' });
     }
@@ -139,20 +135,18 @@ if (GOOGLE_ENABLED) {
       failureRedirect: frontendUrl ? `${frontendUrl}/login?error=auth_failed` : '/login?error=auth_failed',
     }),
     (req: Request, res: Response) => {
-      // Redirect to app root (never to /login) so the session cookie is used on next load
       const base = frontendUrl || '';
       const redirectUrl = base ? `${base.replace(/\/$/, '')}/` : '/';
       res.redirect(redirectUrl);
     }
   );
 } else {
-  // Return 503 Service Unavailable if Google OAuth is disabled
   router.get('/google', (req: Request, res: Response) => {
-    res.status(503).json({ error: 'Google OAuth n\'est pas configuré' });
+    res.status(503).json({ error: 'Google OAuth n\'est pas configure' });
   });
 
   router.get('/google/callback', (req: Request, res: Response) => {
-    res.status(503).json({ error: 'Google OAuth n\'est pas configuré' });
+    res.status(503).json({ error: 'Google OAuth n\'est pas configure' });
   });
 }
 
@@ -163,27 +157,26 @@ router.get('/google/enabled', (req: Request, res: Response) => {
 
 // Get current user
 router.get('/me', (req: Request, res: Response) => {
-  const user = (req as any).user;
-  if (user) {
+  if (req.user) {
     res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      picture: user.picture,
-      isAdmin: !!user.isAdmin,
+      id: req.user.id,
+      email: req.user.email,
+      name: req.user.name,
+      picture: req.user.picture,
+      isAdmin: !!req.user.isAdmin,
     });
   } else {
-    res.status(401).json({ error: 'Non authentifié' });
+    res.status(401).json({ error: 'Non authentifie' });
   }
 });
 
 // Logout
 router.post('/logout', (req: Request, res: Response) => {
-  (req as any).logout((err: any) => {
+  req.logout((err: Error | null) => {
     if (err) {
-      return res.status(500).json({ error: 'Échec de la déconnexion' });
+      return res.status(500).json({ error: 'Echec de la deconnexion' });
     }
-    res.json({ message: 'Déconnexion réussie' });
+    res.json({ message: 'Deconnexion reussie' });
   });
 });
 

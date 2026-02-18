@@ -9,6 +9,21 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { getApiError } from '@/utils/get-api-error';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Spinner } from '@/components/ui/spinner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export type AdminUser = {
   id: string;
@@ -32,8 +47,8 @@ export default function AdminDashboard() {
     try {
       const res = await api.get<AdminUser[]>('/api/admin/users');
       setUsers(res.data);
-    } catch (e: any) {
-      setError(e.response?.data?.error || 'Erreur chargement utilisateurs');
+    } catch (e: unknown) {
+      setError(getApiError(e, 'Erreur chargement utilisateurs'));
     } finally {
       setLoading(false);
     }
@@ -49,165 +64,168 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200">
-      <header className="bg-base-100 border-b border-base-300 shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div className="min-h-screen bg-muted/30">
+      <header className="border-b border-border bg-card shadow-sm">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-4 px-4 py-4">
           <h1 className="text-xl font-bold">Tableau de bord admin</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <a href="/" className="btn btn-ghost btn-sm gap-2">
-              <FontAwesomeIcon icon={faHome} />
-              App
-            </a>
-            <span className="text-sm text-base-content/70">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="sm" asChild>
+              <a href="/">
+                <FontAwesomeIcon icon={faHome} className="mr-2" />
+                App
+              </a>
+            </Button>
+            <span className="text-sm text-muted-foreground">
               {user?.email}
             </span>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm gap-2"
-              onClick={handleLogout}
-            >
-              <FontAwesomeIcon icon={faSignOutAlt} />
-              Déconnexion
-            </button>
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <FontAwesomeIcon icon={faSignOutAlt} className="mr-2" />
+              Deconnexion
+            </Button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+      <main className="mx-auto max-w-4xl px-4 py-8">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Utilisateurs</h2>
-          <button
-            type="button"
-            className="btn btn-primary gap-2"
+          <Button
             onClick={() => {
               setCreateOpen(true);
               setEditId(null);
               setDeleteId(null);
             }}
           >
-            <FontAwesomeIcon icon={faUserPlus} />
-            Créer un utilisateur
-          </button>
+            <FontAwesomeIcon icon={faUserPlus} className="mr-2" />
+            Creer un utilisateur
+          </Button>
         </div>
 
         {error && (
-          <div className="alert alert-error mb-4">
-            <span>{error}</span>
-          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <span className="loading loading-spinner loading-lg" />
+            <Spinner className="size-8" />
           </div>
         ) : (
-          <div className="overflow-x-auto card bg-base-100 shadow">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Nom</th>
-                  <th>Rôle</th>
-                  <th>Créé le</th>
-                  <th className="w-24">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td className="font-mono text-sm">{u.email}</td>
-                    <td>{u.name || '—'}</td>
-                    <td>
-                      {u.isAdmin ? (
-                        <span className="badge badge-warning">Admin</span>
-                      ) : (
-                        <span className="badge badge-ghost">Utilisateur</span>
-                      )}
-                    </td>
-                    <td className="text-sm text-base-content/70">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </td>
-                    <td>
-                      {u.email !== 'admin@local' && (
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-xs"
-                            title="Modifier"
-                            onClick={() => {
-                              setEditId(u.id);
-                              setCreateOpen(false);
-                              setDeleteId(null);
-                            }}
-                          >
-                            <FontAwesomeIcon icon={faPencil} />
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-ghost btn-xs text-error"
-                            title="Supprimer"
-                            onClick={() => {
-                              setDeleteId(u.id);
-                              setCreateOpen(false);
-                              setEditId(null);
-                            }}
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {users.length === 0 && (
-              <div className="p-8 text-center text-base-content/70">
-                Aucun utilisateur. Créez-en un pour qu’ils puissent se connecter.
+          <Card className="overflow-hidden shadow">
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/50">
+                      <th className="px-4 py-3 text-left font-medium">Email</th>
+                      <th className="px-4 py-3 text-left font-medium">Nom</th>
+                      <th className="px-4 py-3 text-left font-medium">Role</th>
+                      <th className="px-4 py-3 text-left font-medium">Cree le</th>
+                      <th className="w-24 px-4 py-3 text-left font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.map((u) => (
+                      <tr key={u.id} className="border-b border-border last:border-0">
+                        <td className="px-4 py-3 font-mono text-sm">{u.email}</td>
+                        <td className="px-4 py-3">{u.name || '—'}</td>
+                        <td className="px-4 py-3">
+                          {u.isAdmin ? (
+                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                              Admin
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                              Utilisateur
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                          {new Date(u.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.email !== 'admin@local' && (
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8"
+                                title="Modifier"
+                                onClick={() => {
+                                  setEditId(u.id);
+                                  setCreateOpen(false);
+                                  setDeleteId(null);
+                                }}
+                              >
+                                <FontAwesomeIcon icon={faPencil} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 text-destructive hover:text-destructive"
+                                title="Supprimer"
+                                onClick={() => {
+                                  setDeleteId(u.id);
+                                  setCreateOpen(false);
+                                  setEditId(null);
+                                }}
+                              >
+                                <FontAwesomeIcon icon={faTrash} />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
+              {users.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">
+                  Aucun utilisateur. Creez-en un pour qu'ils puissent se connecter.
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
-        {createOpen && (
-          <CreateUserModal
-            onClose={() => setCreateOpen(false)}
-            onCreated={() => {
-              setCreateOpen(false);
-              fetchUsers();
-            }}
-          />
-        )}
-        {editId && (
-          <EditUserModal
-            user={users.find((u) => u.id === editId)!}
-            onClose={() => setEditId(null)}
-            onUpdated={() => {
-              setEditId(null);
-              fetchUsers();
-            }}
-          />
-        )}
-        {deleteId && (
-          <DeleteUserModal
-            user={users.find((u) => u.id === deleteId)!}
-            onClose={() => setDeleteId(null)}
-            onDeleted={() => {
-              setDeleteId(null);
-              fetchUsers();
-            }}
-          />
-        )}
+        <CreateUserDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          onCreated={() => {
+            setCreateOpen(false);
+            fetchUsers();
+          }}
+        />
+        <EditUserDialog
+          user={editId ? users.find((u) => u.id === editId) ?? null : null}
+          onOpenChange={(open) => { if (!open) setEditId(null); }}
+          onUpdated={() => {
+            setEditId(null);
+            fetchUsers();
+          }}
+        />
+        <DeleteUserDialog
+          user={deleteId ? users.find((u) => u.id === deleteId) ?? null : null}
+          onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+          onDeleted={() => {
+            setDeleteId(null);
+            fetchUsers();
+          }}
+        />
       </main>
     </div>
   );
 }
 
-function CreateUserModal({
-  onClose,
+function CreateUserDialog({
+  open,
+  onOpenChange,
   onCreated,
 }: {
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onCreated: () => void;
 }) {
   const [email, setEmail] = useState('');
@@ -226,52 +244,51 @@ function CreateUserModal({
         name: name.trim() || undefined,
         password,
       });
+      setEmail('');
+      setName('');
+      setPassword('');
       onCreated();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de la création');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Erreur lors de la creation'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <dialog open className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Créer un utilisateur</h3>
-        <p className="text-sm text-base-content/70 py-1">
-          L’utilisateur pourra se connecter avec cet email et ce mot de passe.
-        </p>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Email *</span>
-            </label>
-            <input
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Creer un utilisateur</DialogTitle>
+          <DialogDescription>
+            L'utilisateur pourra se connecter avec cet email et ce mot de passe.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="create-email">Email *</Label>
+            <Input
+              id="create-email"
               type="email"
-              className="input input-bordered w-full"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Nom (optionnel)</span>
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="create-name">Nom (optionnel)</Label>
+            <Input
+              id="create-name"
               type="text"
-              className="input input-bordered w-full"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Mot de passe * (min. 6 caractères)</span>
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="create-password">Mot de passe * (min. 6 caracteres)</Label>
+            <Input
+              id="create-password"
               type="password"
-              className="input input-bordered w-full"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -279,43 +296,49 @@ function CreateUserModal({
             />
           </div>
           {error && (
-            <div className="alert alert-error">
-              <span>{error}</span>
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-          <div className="modal-action">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Annuler
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <span className="loading loading-spinner" /> : 'Créer'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Spinner className="size-4" /> : 'Creer'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="button">close</button>
-      </form>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function EditUserModal({
+function EditUserDialog({
   user,
-  onClose,
+  onOpenChange,
   onUpdated,
 }: {
-  user: AdminUser;
-  onClose: () => void;
+  user: AdminUser | null;
+  onOpenChange: (open: boolean) => void;
   onUpdated: () => void;
 }) {
-  const [name, setName] = useState(user.name || '');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (user) {
+      setName(user.name || '');
+      setPassword('');
+      setError('');
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setError('');
     setLoading(true);
     try {
@@ -324,118 +347,108 @@ function EditUserModal({
         ...(password ? { password } : {}),
       });
       onUpdated();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de la mise à jour');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Erreur lors de la mise a jour'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <dialog open className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Modifier l’utilisateur</h3>
-        <p className="text-sm text-base-content/70 py-1 font-mono">{user.email}</p>
-        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Nom</span>
-            </label>
-            <input
+    <Dialog open={user !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Modifier l'utilisateur</DialogTitle>
+          <DialogDescription className="font-mono">{user?.email}</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="edit-name">Nom</Label>
+            <Input
+              id="edit-name"
               type="text"
-              className="input input-bordered w-full"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Nouveau mot de passe (laisser vide pour ne pas changer)</span>
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="edit-password">Nouveau mot de passe (laisser vide pour ne pas changer)</Label>
+            <Input
+              id="edit-password"
               type="password"
-              className="input input-bordered w-full"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
             />
           </div>
           {error && (
-            <div className="alert alert-error">
-              <span>{error}</span>
-            </div>
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
-          <div className="modal-action">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Annuler
-            </button>
-            <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <span className="loading loading-spinner" /> : 'Enregistrer'}
-            </button>
-          </div>
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <Spinner className="size-4" /> : 'Enregistrer'}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="button">close</button>
-      </form>
-    </dialog>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function DeleteUserModal({
+function DeleteUserDialog({
   user,
-  onClose,
+  onOpenChange,
   onDeleted,
 }: {
-  user: AdminUser;
-  onClose: () => void;
+  user: AdminUser | null;
+  onOpenChange: (open: boolean) => void;
   onDeleted: () => void;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleDelete = async () => {
+    if (!user) return;
     setError('');
     setLoading(true);
     try {
       await api.delete(`/api/admin/users/${user.id}`);
       onDeleted();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de la suppression');
+    } catch (err: unknown) {
+      setError(getApiError(err, 'Erreur lors de la suppression'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <dialog open className="modal modal-open">
-      <div className="modal-box">
-        <h3 className="font-bold text-lg">Supprimer l’utilisateur</h3>
-        <p className="py-2">
-          Supprimer <strong>{user.email}</strong> ? Toutes ses données (lieux, inventaires, etc.) seront supprimées.
-        </p>
+    <Dialog open={user !== null} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Supprimer l'utilisateur</DialogTitle>
+          <DialogDescription>
+            Supprimer <strong>{user?.email}</strong> ? Toutes ses donnees (lieux, inventaires, etc.) seront supprimees.
+          </DialogDescription>
+        </DialogHeader>
         {error && (
-          <div className="alert alert-error mt-2">
-            <span>{error}</span>
-          </div>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
-        <div className="modal-action">
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Annuler
-          </button>
-          <button
-            type="button"
-            className="btn btn-error"
-            onClick={handleDelete}
-            disabled={loading}
-          >
-            {loading ? <span className="loading loading-spinner" /> : 'Supprimer'}
-          </button>
-        </div>
-      </div>
-      <form method="dialog" className="modal-backdrop" onClick={onClose}>
-        <button type="button">close</button>
-      </form>
-    </dialog>
+          </Button>
+          <Button variant="destructive" onClick={handleDelete} disabled={loading}>
+            {loading ? <Spinner className="size-4" /> : 'Supprimer'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

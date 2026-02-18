@@ -1,34 +1,23 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faArrowLeft,
-  faDoorOpen,
-  faVault,
-  faPlus,
-  faTrash,
-  faImage,
-  faPen,
-  faCheck,
-  faTimes,
-} from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faDoorOpen, faVault } from '@fortawesome/free-solid-svg-icons';
 import { locationsApi, roomsApi, safesApi } from '@/services/api';
 import type { Location } from '@/services/api';
 import { SUGGESTED_ROOMS, SUGGESTED_SAFES } from '@/constants/suggestions';
+import { getRoomIcon } from '@/constants/room-icons';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+import ContainerCard from '@/components/ContainerCard';
+import AddItemCard from '@/components/AddItemCard';
 
 export default function LocationDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [location, setLocation] = useState<Location | null>(null);
   const [loading, setLoading] = useState(true);
-  const [newRoomName, setNewRoomName] = useState('');
-  const [newSafeName, setNewSafeName] = useState('');
   const [addingRoom, setAddingRoom] = useState(false);
   const [addingSafe, setAddingSafe] = useState(false);
   const [error, setError] = useState('');
@@ -41,14 +30,15 @@ export default function LocationDetail() {
   const [lastAddedRoomId, setLastAddedRoomId] = useState<string | null>(null);
   const [lastAddedSafeId, setLastAddedSafeId] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
-  const addedRoomRef = useRef<HTMLLIElement>(null);
-  const addedSafeRef = useRef<HTMLLIElement>(null);
+  const [showAddRoom, setShowAddRoom] = useState(false);
+  const [showAddSafe, setShowAddSafe] = useState(false);
+  const addedRoomRef = useRef<HTMLDivElement>(null);
+  const addedSafeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (id) loadLocation();
   }, [id]);
 
-  // Clear "just added" highlight after a few seconds
   useEffect(() => {
     if (!lastAddedRoomId && !lastAddedSafeId) return;
     const t = setTimeout(() => {
@@ -58,7 +48,6 @@ export default function LocationDetail() {
     return () => clearTimeout(t);
   }, [lastAddedRoomId, lastAddedSafeId]);
 
-  // Scroll newly added room/safe into view
   useEffect(() => {
     if (lastAddedRoomId && addedRoomRef.current) {
       addedRoomRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -68,133 +57,75 @@ export default function LocationDetail() {
     }
   }, [lastAddedRoomId, lastAddedSafeId, location?.rooms, location?.safes]);
 
-  const loadLocation = async (silent = false) => {
-    if (!id) return;
-    try {
-      if (!silent) setLoading(true);
-      const data = await locationsApi.getById(id);
-      setLocation(data);
-    } catch (err) {
-      if (!silent) setLocation(null);
-    } finally {
-      if (!silent) setLoading(false);
-    }
-  };
-
-  const handleAddRoom = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !newRoomName.trim()) return;
-    setError('');
-    try {
-      setAddingRoom(true);
-      const room = await locationsApi.addRoom(id, newRoomName.trim());
-      const name = newRoomName.trim();
-      setNewRoomName('');
-      setLastAddedRoomId(room.id);
-      setSuccessMessage('Pièce ajoutée et enregistrée.');
-      setLocation((prev) =>
-        prev
-          ? {
-              ...prev,
-              rooms: [...(prev.rooms ?? []), { id: room.id, name, _count: { images: 0 } }],
-            }
-          : prev
-      );
-      await loadLocation(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'enregistrement');
-    } finally {
-      setAddingRoom(false);
-    }
-  };
-
-  const handleAddSafe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !newSafeName.trim()) return;
-    setError('');
-    try {
-      setAddingSafe(true);
-      const safe = await locationsApi.addSafe(id, newSafeName.trim());
-      const name = newSafeName.trim();
-      setNewSafeName('');
-      setLastAddedSafeId(safe.id);
-      setSuccessMessage('Coffre ajouté et enregistré.');
-      setLocation((prev) =>
-        prev
-          ? {
-              ...prev,
-              safes: [...(prev.safes ?? []), { id: safe.id, name, _count: { images: 0 } }],
-            }
-          : prev
-      );
-      await loadLocation(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'enregistrement');
-    } finally {
-      setAddingSafe(false);
-    }
-  };
-
-  const handleAddRoomFromSuggestion = async (roomName: string) => {
-    if (!id || !roomName) return;
-    setError('');
-    try {
-      setAddingRoom(true);
-      const room = await locationsApi.addRoom(id, roomName);
-      setLastAddedRoomId(room.id);
-      setSuccessMessage('Pièce ajoutée et enregistrée.');
-      setLocation((prev) =>
-        prev
-          ? {
-              ...prev,
-              rooms: [...(prev.rooms ?? []), { id: room.id, name: roomName, _count: { images: 0 } }],
-            }
-          : prev
-      );
-      await loadLocation(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'enregistrement');
-    } finally {
-      setAddingRoom(false);
-    }
-  };
-
-  const handleAddSafeFromSuggestion = async (safeName: string) => {
-    if (!id || !safeName) return;
-    setError('');
-    try {
-      setAddingSafe(true);
-      const safe = await locationsApi.addSafe(id, safeName);
-      setLastAddedSafeId(safe.id);
-      setSuccessMessage('Coffre ajouté et enregistré.');
-      setLocation((prev) =>
-        prev
-          ? {
-              ...prev,
-              safes: [...(prev.safes ?? []), { id: safe.id, name: safeName, _count: { images: 0 } }],
-            }
-          : prev
-      );
-      await loadLocation(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur lors de l\'enregistrement');
-    } finally {
-      setAddingSafe(false);
-    }
-  };
-
   useEffect(() => {
     if (!successMessage) return;
     const t = setTimeout(() => setSuccessMessage(''), 4000);
     return () => clearTimeout(t);
   }, [successMessage]);
 
+  const loadLocation = async (silent = false) => {
+    if (!id) return;
+    try {
+      if (!silent) setLoading(true);
+      const data = await locationsApi.getById(id);
+      setLocation(data);
+    } catch {
+      if (!silent) setLocation(null);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  };
+
+  const addRoom = async (name: string) => {
+    if (!id || !name) return;
+    setError('');
+    try {
+      setAddingRoom(true);
+      const room = await locationsApi.addRoom(id, name);
+      setLastAddedRoomId(room.id);
+      setSuccessMessage('Piece ajoutee et enregistree.');
+      setLocation((prev) =>
+        prev
+          ? { ...prev, rooms: [...(prev.rooms ?? []), { id: room.id, name, _count: { images: 0 } }] }
+          : prev
+      );
+      await loadLocation(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement';
+      setError(message);
+    } finally {
+      setAddingRoom(false);
+    }
+  };
+
+  const addSafe = async (name: string) => {
+    if (!id || !name) return;
+    setError('');
+    try {
+      setAddingSafe(true);
+      const safe = await locationsApi.addSafe(id, name);
+      setLastAddedSafeId(safe.id);
+      setSuccessMessage('Coffre ajoute et enregistre.');
+      setLocation((prev) =>
+        prev
+          ? { ...prev, safes: [...(prev.safes ?? []), { id: safe.id, name, _count: { images: 0 } }] }
+          : prev
+      );
+      await loadLocation(true);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement';
+      setError(message);
+    } finally {
+      setAddingSafe(false);
+    }
+  };
+
   const handleDeleteRoom = async (roomId: string) => {
-    if (!confirm('Supprimer cette pièce et toutes ses photos ?')) return;
+    if (!confirm('Supprimer cette piece et toutes ses photos ?')) return;
     try {
       await roomsApi.delete(roomId);
       loadLocation();
-    } catch (err) {
+    } catch {
       alert('Erreur lors de la suppression');
     }
   };
@@ -204,7 +135,7 @@ export default function LocationDetail() {
     try {
       await safesApi.delete(safeId);
       loadLocation();
-    } catch (err) {
+    } catch {
       alert('Erreur lors de la suppression');
     }
   };
@@ -225,8 +156,9 @@ export default function LocationDetail() {
       await roomsApi.update(editingRoomId, editingRoomName.trim());
       cancelEditRoom();
       await loadLocation();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur';
+      setError(message);
     } finally {
       setSavingRoom(false);
     }
@@ -248,8 +180,9 @@ export default function LocationDetail() {
       await safesApi.update(editingSafeId, editingSafeName.trim());
       cancelEditSafe();
       await loadLocation();
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Erreur');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur';
+      setError(message);
     } finally {
       setSavingSafe(false);
     }
@@ -309,280 +242,88 @@ export default function LocationDetail() {
         </Alert>
       )}
 
-      {/* Pièces */}
-      <Card className="mb-6 shadow-md">
-        <CardHeader>
-          <CardTitle className="mb-4 flex items-center text-xl">
-            <FontAwesomeIcon icon={faDoorOpen} className="mr-2 text-primary" />
-            Pièces
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 space-y-2">
-            <Label className="text-sm text-muted-foreground">Suggestions de pièces (assurance)</Label>
-            <select
-              className="max-w-xs"
-              value=""
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v) handleAddRoomFromSuggestion(v);
-                e.target.value = '';
-              }}
-              disabled={addingRoom}
-            >
-              <option value="">Choisir une pièce à ajouter…</option>
-              {SUGGESTED_ROOMS.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <form onSubmit={handleAddRoom} className="mb-4 flex gap-2">
-            <Input
-              type="text"
-              className="flex-1"
-              placeholder="Ou saisir un nom personnalisé (ex : Salon, Cuisine)"
-              value={newRoomName}
-              onChange={(e) => setNewRoomName(e.target.value)}
+      {/* Pieces */}
+      <section className="mb-8">
+        <h2 className="mb-4 flex items-center text-xl font-semibold">
+          <FontAwesomeIcon icon={faDoorOpen} className="mr-2 text-primary" />
+          Pieces
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {rooms.map((room) => (
+            <ContainerCard
+              key={room.id}
+              containerType="room"
+              container={room}
+              highlighted={room.id === lastAddedRoomId}
+              editing={editingRoomId === room.id}
+              editName={editingRoomName}
+              saving={savingRoom}
+              onEditNameChange={setEditingRoomName}
+              onStartEdit={() => startEditRoom(room)}
+              onSaveEdit={handleSaveRoomName}
+              onCancelEdit={cancelEditRoom}
+              onDelete={() => handleDeleteRoom(room.id)}
+              scrollRef={room.id === lastAddedRoomId ? addedRoomRef : undefined}
             />
-            <Button type="submit" disabled={addingRoom || !newRoomName.trim()}>
-              <FontAwesomeIcon icon={faPlus} className="mr-2" />
-              Ajouter
-            </Button>
-          </form>
-          {rooms.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune pièce. Ajoutez-en une ci-dessus.</p>
-          ) : (
-            <ul className="space-y-2">
-              {rooms.map((room) => (
-                <li
-                  key={room.id}
-                  ref={room.id === lastAddedRoomId ? addedRoomRef : undefined}
-                  className={`flex items-center justify-between rounded-lg p-3 transition-all duration-300 ${
-                    room.id === lastAddedRoomId
-                      ? 'ring-2 ring-green-500 bg-green-500/15 shadow-md dark:bg-green-500/20'
-                      : 'bg-muted/50'
-                  }`}
-                >
-                  {editingRoomId === room.id ? (
-                    <div className="mr-2 flex flex-1 items-center gap-2">
-                      <Input
-                        type="text"
-                        className="h-9 flex-1"
-                        value={editingRoomName}
-                        onChange={(e) => setEditingRoomName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveRoomName();
-                          if (e.key === 'Escape') cancelEditRoom();
-                        }}
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={handleSaveRoomName}
-                        disabled={savingRoom || !editingRoomName.trim()}
-                        title="Enregistrer"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={cancelEditRoom}
-                        disabled={savingRoom}
-                        title="Annuler"
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <a
-                          href={`/room/${room.id}`}
-                          className="flex items-center gap-2 font-medium hover:underline"
-                        >
-                          {room.name}
-                          <span className="text-sm text-muted-foreground">
-                            ({room._count?.images ?? 0} photo{(room._count?.images ?? 0) !== 1 ? 's' : ''})
-                          </span>
-                        </a>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => startEditRoom(room)}
-                          title="Modifier le nom"
-                        >
-                          <FontAwesomeIcon icon={faPen} />
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={`/room/${room.id}`} title="Voir et gérer les photos">
-                            <FontAwesomeIcon icon={faImage} />
-                          </a>
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteRoom(room.id)}
-                          title="Supprimer la pièce"
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+          <AddItemCard
+            label="Ajouter une piece"
+            suggestions={SUGGESTED_ROOMS}
+            getIcon={getRoomIcon}
+            adding={addingRoom}
+            onAddFromSuggestion={addRoom}
+            onAddCustom={addRoom}
+            open={showAddRoom}
+            onOpenChange={setShowAddRoom}
+          />
+        </div>
+        {rooms.length === 0 && !showAddRoom && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Aucune piece. Cliquez sur le "+" pour en ajouter.
+          </p>
+        )}
+      </section>
 
       {/* Coffres */}
-      <Card className="mb-6 shadow-md">
-        <CardHeader>
-          <CardTitle className="mb-4 flex items-center text-xl">
-            <FontAwesomeIcon icon={faVault} className="mr-2 text-secondary" />
-            Coffres
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 space-y-2">
-            <Label className="text-sm text-muted-foreground">Suggestions de coffres</Label>
-            <select
-              className="max-w-xs"
-              value=""
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v) handleAddSafeFromSuggestion(v);
-                e.target.value = '';
-              }}
-              disabled={addingSafe}
-            >
-              <option value="">Choisir un coffre à ajouter…</option>
-              {SUGGESTED_SAFES.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <form onSubmit={handleAddSafe} className="mb-4 flex gap-2">
-            <Input
-              type="text"
-              className="flex-1"
-              placeholder="Ou saisir un nom personnalisé (ex : Coffre salon)"
-              value={newSafeName}
-              onChange={(e) => setNewSafeName(e.target.value)}
+      <section className="mb-8">
+        <h2 className="mb-4 flex items-center text-xl font-semibold">
+          <FontAwesomeIcon icon={faVault} className="mr-2 text-secondary" />
+          Coffres
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          {safes.map((safe) => (
+            <ContainerCard
+              key={safe.id}
+              containerType="safe"
+              container={safe}
+              highlighted={safe.id === lastAddedSafeId}
+              editing={editingSafeId === safe.id}
+              editName={editingSafeName}
+              saving={savingSafe}
+              onEditNameChange={setEditingSafeName}
+              onStartEdit={() => startEditSafe(safe)}
+              onSaveEdit={handleSaveSafeName}
+              onCancelEdit={cancelEditSafe}
+              onDelete={() => handleDeleteSafe(safe.id)}
+              scrollRef={safe.id === lastAddedSafeId ? addedSafeRef : undefined}
             />
-            <Button type="submit" variant="secondary" disabled={addingSafe || !newSafeName.trim()}>
-              <FontAwesomeIcon icon={faPlus} className="mr-2" />
-              Ajouter
-            </Button>
-          </form>
-          {safes.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucun coffre. Ajoutez-en un ci-dessus.</p>
-          ) : (
-            <ul className="space-y-2">
-              {safes.map((safe) => (
-                <li
-                  key={safe.id}
-                  ref={safe.id === lastAddedSafeId ? addedSafeRef : undefined}
-                  className={`flex items-center justify-between rounded-lg p-3 transition-all duration-300 ${
-                    safe.id === lastAddedSafeId
-                      ? 'ring-2 ring-green-500 bg-green-500/15 shadow-md dark:bg-green-500/20'
-                      : 'bg-muted/50'
-                  }`}
-                >
-                  {editingSafeId === safe.id ? (
-                    <div className="mr-2 flex flex-1 items-center gap-2">
-                      <Input
-                        type="text"
-                        className="h-9 flex-1"
-                        value={editingSafeName}
-                        onChange={(e) => setEditingSafeName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') handleSaveSafeName();
-                          if (e.key === 'Escape') cancelEditSafe();
-                        }}
-                        autoFocus
-                      />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        onClick={handleSaveSafeName}
-                        disabled={savingSafe || !editingSafeName.trim()}
-                        title="Enregistrer"
-                      >
-                        <FontAwesomeIcon icon={faCheck} />
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={cancelEditSafe}
-                        disabled={savingSafe}
-                        title="Annuler"
-                      >
-                        <FontAwesomeIcon icon={faTimes} />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-3">
-                        <a
-                          href={`/safe/${safe.id}`}
-                          className="flex items-center gap-2 font-medium hover:underline"
-                        >
-                          {safe.name}
-                          <span className="text-sm text-muted-foreground">
-                            ({safe._count?.images ?? 0} photo{(safe._count?.images ?? 0) !== 1 ? 's' : ''})
-                          </span>
-                        </a>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => startEditSafe(safe)}
-                          title="Modifier le nom"
-                        >
-                          <FontAwesomeIcon icon={faPen} />
-                        </Button>
-                        <Button variant="ghost" size="sm" asChild>
-                          <a href={`/safe/${safe.id}`} title="Voir et gérer les photos">
-                            <FontAwesomeIcon icon={faImage} />
-                          </a>
-                        </Button>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleDeleteSafe(safe.id)}
-                          title="Supprimer le coffre"
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+          ))}
+          <AddItemCard
+            label="Ajouter un coffre"
+            suggestions={SUGGESTED_SAFES}
+            adding={addingSafe}
+            onAddFromSuggestion={addSafe}
+            onAddCustom={addSafe}
+            open={showAddSafe}
+            onOpenChange={setShowAddSafe}
+          />
+        </div>
+        {safes.length === 0 && !showAddSafe && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Aucun coffre. Cliquez sur le "+" pour en ajouter.
+          </p>
+        )}
+      </section>
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { geminiService } from './gemini.service';
 import { locationService } from './location.service';
 import { pricingService } from './pricing.service';
 import type { PricingInput } from './pricing.service';
+import { AppError } from '../utils/app-error';
+import { getErrorMessage } from '../utils/get-error-message';
+import type { ContainerType } from '../types/container';
 
 function isGeminiModel(modelId: string): boolean {
   return modelId.startsWith('gemini-');
@@ -18,7 +21,7 @@ class AnalysisService {
       orderBy: { uploadOrder: 'asc' },
     });
     if (images.length === 0) {
-      throw new Error('Aucune photo dans cette pièce');
+      throw AppError.badRequest('Aucune photo dans cette piece');
     }
     const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
     const run = await prisma.roomAnalysisRun.create({
@@ -116,8 +119,8 @@ class AnalysisService {
           });
         }
         processed++;
-      } catch (err: any) {
-        errors.push(`${image.fileName}: ${err.message || 'Erreur'}`);
+      } catch (err: unknown) {
+        errors.push(`${image.fileName}: ${getErrorMessage(err, 'Erreur')}`);
       }
     }
 
@@ -182,7 +185,7 @@ class AnalysisService {
       orderBy: { uploadOrder: 'asc' },
     });
     if (images.length === 0) {
-      throw new Error('Aucune photo dans ce coffre');
+      throw AppError.badRequest('Aucune photo dans ce coffre');
     }
     const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
     const run = await prisma.safeAnalysisRun.create({
@@ -280,8 +283,8 @@ class AnalysisService {
           });
         }
         processed++;
-      } catch (err: any) {
-        errors.push(`${image.fileName}: ${err.message || 'Erreur'}`);
+      } catch (err: unknown) {
+        errors.push(`${image.fileName}: ${getErrorMessage(err, 'Erreur')}`);
       }
     }
 
@@ -337,6 +340,11 @@ class AnalysisService {
         },
       },
     });
+  }
+  startContainerAnalysis(type: ContainerType, containerId: string, userId: string, model?: string | null) {
+    return type === 'room'
+      ? this.startRoomAnalysis(containerId, userId, model)
+      : this.startSafeAnalysis(containerId, userId, model);
   }
 }
 

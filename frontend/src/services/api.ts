@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { ContainerType } from '@/constants/container-config';
 
 // In production: use VITE_API_URL when set (frontend and backend on different origins, e.g. two Railway services).
 // Otherwise same-origin (backend serves frontend, or Vite proxy in dev).
@@ -20,7 +21,7 @@ export type Inventory = {
   recommendedInsuranceAmount: number;
   createdAt: string;
   itemCount?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 };
 
 export type InventoryItem = {
@@ -172,11 +173,12 @@ export type Location = {
 
 export type AnalysisStatus = 'idle' | 'processing' | 'completed' | 'error';
 
-export type RoomDetectedItem = {
+// Unified container types (rooms and safes share the same shape)
+export type ContainerDetectedItem = {
   id: string;
-  roomId: string;
-  roomImageId?: string;
-  roomAnalysisRunId?: string;
+  containerId: string;
+  containerImageId?: string;
+  containerRunId?: string;
   category: string;
   itemName: string;
   brand?: string;
@@ -186,71 +188,44 @@ export type RoomDetectedItem = {
   notes?: string;
   estimatedValue: number;
   replacementValue: number;
-  aiAnalysis: { description?: string; boundingBox?: { x: number; y: number; width: number; height: number }; sourceImageId?: string };
+  aiAnalysis: { description?: string; boundingBox?: { x: number; y: number; width: number; height: number }; sourceImageId?: string; pricing?: Record<string, unknown> };
   createdAt: string;
   updatedAt: string;
 };
 
-export type SafeDetectedItem = {
-  id: string;
-  safeId: string;
-  safeImageId?: string;
-  safeAnalysisRunId?: string;
-  category: string;
-  itemName: string;
-  brand?: string;
-  model?: string;
-  condition: string;
-  estimatedAge?: number;
-  notes?: string;
-  estimatedValue: number;
-  replacementValue: number;
-  aiAnalysis: { description?: string; boundingBox?: { x: number; y: number; width: number; height: number }; sourceImageId?: string };
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type RoomAnalysisRun = {
+export type ContainerAnalysisRun = {
   id: string;
   modelId: string;
   status: AnalysisStatus;
-  analysisMetadata: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
+  analysisMetadata: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[]; error?: string };
   createdAt: string;
-  items: RoomDetectedItem[];
+  items: ContainerDetectedItem[];
 };
 
-export type SafeAnalysisRun = {
-  id: string;
-  modelId: string;
-  status: AnalysisStatus;
-  analysisMetadata: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
-  createdAt: string;
-  items: SafeDetectedItem[];
-};
-
-export type Room = {
+export type Container = {
   id: string;
   locationId: string;
   name: string;
   analysisStatus: AnalysisStatus;
-  analysisMetadata?: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
+  analysisMetadata?: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[]; error?: string };
   location?: { id: string; name: string };
   images: Array<{ id: string; fileName: string; fileSize: number; uploadOrder: number; createdAt: string }>;
-  items?: RoomDetectedItem[];
-  analysisRuns?: RoomAnalysisRun[];
+  items?: ContainerDetectedItem[];
+  analysisRuns?: ContainerAnalysisRun[];
 };
 
-export type Safe = {
-  id: string;
-  locationId: string;
-  name: string;
-  analysisStatus: AnalysisStatus;
-  analysisMetadata?: { currentImage?: number; totalImages?: number; processedImages?: number; errors?: string[] };
-  location?: { id: string; name: string };
-  images: Array<{ id: string; fileName: string; fileSize: number; uploadOrder: number; createdAt: string }>;
-  items?: SafeDetectedItem[];
-  analysisRuns?: SafeAnalysisRun[];
-};
+/** @deprecated Use ContainerDetectedItem */
+export type RoomDetectedItem = ContainerDetectedItem;
+/** @deprecated Use ContainerDetectedItem */
+export type SafeDetectedItem = ContainerDetectedItem;
+/** @deprecated Use ContainerAnalysisRun */
+export type RoomAnalysisRun = ContainerAnalysisRun;
+/** @deprecated Use ContainerAnalysisRun */
+export type SafeAnalysisRun = ContainerAnalysisRun;
+/** @deprecated Use Container */
+export type Room = Container;
+/** @deprecated Use Container */
+export type Safe = Container;
 
 export const locationsApi = {
   list: async (): Promise<Location[]> => {
@@ -287,151 +262,87 @@ export const locationsApi = {
   },
 };
 
-export const roomsApi = {
-  getById: async (id: string): Promise<Room> => {
-    const res = await api.get<Room>(`/api/rooms/${id}`);
-    return res.data;
-  },
-  update: async (id: string, name: string): Promise<Room> => {
-    const res = await api.patch<Room>(`/api/rooms/${id}`, { name });
-    return res.data;
-  },
-  delete: async (id: string): Promise<void> => {
-    await api.delete(`/api/rooms/${id}`);
-  },
-  analyze: async (roomId: string, model?: string): Promise<{ message: string; status: string }> => {
-    const res = await api.post<{ message: string; status: string }>(`/api/rooms/${roomId}/analyze`, model != null ? { model } : {});
-    return res.data;
-  },
-  addItem: async (
-    roomId: string,
-    data: { itemName: string; category: string; condition: string; estimatedValue?: number; replacementValue?: number; notes?: string }
-  ) => {
-    const res = await api.post<RoomDetectedItem>(`/api/rooms/${roomId}/items`, data);
-    return res.data;
-  },
-  updateItem: async (
-    roomId: string,
-    itemId: string,
-    updates: { itemName?: string; category?: string; condition?: string; estimatedValue?: number; replacementValue?: number; notes?: string }
-  ): Promise<RoomDetectedItem> => {
-    const res = await api.patch<RoomDetectedItem>(`/api/rooms/${roomId}/items/${itemId}`, updates);
-    return res.data;
-  },
-  deleteItem: async (roomId: string, itemId: string): Promise<void> => {
-    await api.delete(`/api/rooms/${roomId}/items/${itemId}`);
-  },
-  addImages: async (roomId: string, files: File[]) => {
-    const formData = new FormData();
-    files.forEach((f) => formData.append('images', f));
-    const res = await api.post(`/api/rooms/${roomId}/images`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data;
-  },
-  deleteImage: async (roomId: string, imageId: string): Promise<void> => {
-    await api.delete(`/api/rooms/${roomId}/images/${imageId}`);
-  },
-  getImageUrl: (roomId: string, imageId: string): string =>
-    `${API_URL}/api/rooms/${roomId}/images/${imageId}`,
-  reEstimatePrices: async (roomId: string): Promise<{ updated: number }> => {
-    const room = await roomsApi.getById(roomId);
-    const items = room.items ?? [];
-    if (items.length === 0) return { updated: 0 };
-    const inputs = items.map((i) => ({
-      itemName: i.itemName,
-      brand: i.brand,
-      model: i.model,
-      category: i.category,
-    }));
-    const { results } = await pricingApi.estimatePrices(inputs);
-    let updated = 0;
-    for (let idx = 0; idx < items.length; idx++) {
-      const pricing = results[idx];
-      if (pricing && pricing.estimatedValue > 0) {
-        await roomsApi.updateItem(roomId, items[idx].id, {
-          estimatedValue: pricing.estimatedValue,
-          replacementValue: pricing.replacementValue,
-        });
-        updated++;
-      }
-    }
-    return { updated };
-  },
-};
+export function createContainerApi(type: ContainerType) {
+  const base = type === 'room' ? '/api/rooms' : '/api/safes';
 
-export const safesApi = {
-  getById: async (id: string): Promise<Safe> => {
-    const res = await api.get<Safe>(`/api/safes/${id}`);
-    return res.data;
-  },
-  update: async (id: string, name: string): Promise<Safe> => {
-    const res = await api.patch<Safe>(`/api/safes/${id}`, { name });
-    return res.data;
-  },
-  delete: async (id: string): Promise<void> => {
-    await api.delete(`/api/safes/${id}`);
-  },
-  analyze: async (safeId: string, model?: string): Promise<{ message: string; status: string }> => {
-    const res = await api.post<{ message: string; status: string }>(`/api/safes/${safeId}/analyze`, model != null ? { model } : {});
-    return res.data;
-  },
-  addItem: async (
-    safeId: string,
-    data: { itemName: string; category: string; condition: string; estimatedValue?: number; replacementValue?: number; notes?: string }
-  ) => {
-    const res = await api.post<SafeDetectedItem>(`/api/safes/${safeId}/items`, data);
-    return res.data;
-  },
-  updateItem: async (
-    safeId: string,
-    itemId: string,
-    updates: { itemName?: string; category?: string; condition?: string; estimatedValue?: number; replacementValue?: number; notes?: string }
-  ): Promise<SafeDetectedItem> => {
-    const res = await api.patch<SafeDetectedItem>(`/api/safes/${safeId}/items/${itemId}`, updates);
-    return res.data;
-  },
-  deleteItem: async (safeId: string, itemId: string): Promise<void> => {
-    await api.delete(`/api/safes/${safeId}/items/${itemId}`);
-  },
-  addImages: async (safeId: string, files: File[]) => {
-    const formData = new FormData();
-    files.forEach((f) => formData.append('images', f));
-    const res = await api.post(`/api/safes/${safeId}/images`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data;
-  },
-  deleteImage: async (safeId: string, imageId: string): Promise<void> => {
-    await api.delete(`/api/safes/${safeId}/images/${imageId}`);
-  },
-  getImageUrl: (safeId: string, imageId: string): string =>
-    `${API_URL}/api/safes/${safeId}/images/${imageId}`,
-  reEstimatePrices: async (safeId: string): Promise<{ updated: number }> => {
-    const safe = await safesApi.getById(safeId);
-    const items = safe.items ?? [];
-    if (items.length === 0) return { updated: 0 };
-    const inputs = items.map((i) => ({
-      itemName: i.itemName,
-      brand: i.brand,
-      model: i.model,
-      category: i.category,
-    }));
-    const { results } = await pricingApi.estimatePrices(inputs);
-    let updated = 0;
-    for (let idx = 0; idx < items.length; idx++) {
-      const pricing = results[idx];
-      if (pricing && pricing.estimatedValue > 0) {
-        await safesApi.updateItem(safeId, items[idx].id, {
-          estimatedValue: pricing.estimatedValue,
-          replacementValue: pricing.replacementValue,
-        });
-        updated++;
+  const containerApi = {
+    getById: async (id: string): Promise<Container> => {
+      const res = await api.get<Container>(`${base}/${id}`);
+      return res.data;
+    },
+    update: async (id: string, name: string): Promise<Container> => {
+      const res = await api.patch<Container>(`${base}/${id}`, { name });
+      return res.data;
+    },
+    delete: async (id: string): Promise<void> => {
+      await api.delete(`${base}/${id}`);
+    },
+    analyze: async (id: string, model?: string): Promise<{ message: string; status: string }> => {
+      const res = await api.post<{ message: string; status: string }>(`${base}/${id}/analyze`, model != null ? { model } : {});
+      return res.data;
+    },
+    addItem: async (
+      id: string,
+      data: { itemName: string; category: string; condition: string; estimatedValue?: number; replacementValue?: number; notes?: string }
+    ): Promise<ContainerDetectedItem> => {
+      const res = await api.post<ContainerDetectedItem>(`${base}/${id}/items`, data);
+      return res.data;
+    },
+    updateItem: async (
+      id: string,
+      itemId: string,
+      updates: { itemName?: string; category?: string; condition?: string; estimatedValue?: number; replacementValue?: number; notes?: string }
+    ): Promise<ContainerDetectedItem> => {
+      const res = await api.patch<ContainerDetectedItem>(`${base}/${id}/items/${itemId}`, updates);
+      return res.data;
+    },
+    deleteItem: async (id: string, itemId: string): Promise<void> => {
+      await api.delete(`${base}/${id}/items/${itemId}`);
+    },
+    addImages: async (id: string, files: File[]) => {
+      const formData = new FormData();
+      files.forEach((f) => formData.append('images', f));
+      const res = await api.post(`${base}/${id}/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return res.data;
+    },
+    deleteImage: async (id: string, imageId: string): Promise<void> => {
+      await api.delete(`${base}/${id}/images/${imageId}`);
+    },
+    getImageUrl: (id: string, imageId: string): string =>
+      `${API_URL}${base}/${id}/images/${imageId}`,
+    reEstimatePrices: async (id: string): Promise<{ updated: number }> => {
+      const container = await containerApi.getById(id);
+      const items = container.items ?? [];
+      if (items.length === 0) return { updated: 0 };
+      const inputs = items.map((i) => ({
+        itemName: i.itemName,
+        brand: i.brand,
+        model: i.model,
+        category: i.category,
+      }));
+      const { results } = await pricingApi.estimatePrices(inputs);
+      let updated = 0;
+      for (let idx = 0; idx < items.length; idx++) {
+        const pricing = results[idx];
+        if (pricing && pricing.estimatedValue > 0) {
+          await containerApi.updateItem(id, items[idx].id, {
+            estimatedValue: pricing.estimatedValue,
+            replacementValue: pricing.replacementValue,
+          });
+          updated++;
+        }
       }
-    }
-    return { updated };
-  },
-};
+      return { updated };
+    },
+  };
+
+  return containerApi;
+}
+
+export const roomsApi = createContainerApi('room');
+export const safesApi = createContainerApi('safe');
 
 export type PricingEstimateInput = {
   itemName: string;

@@ -3,14 +3,15 @@ import multer from 'multer';
 import { inventoryService } from '../services/inventory.service';
 import { imageService } from '../services/image.service';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { asyncHandler } from '../utils/async-handler';
+import { AppError } from '../utils/app-error';
 
 const router = Router();
 
-// Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -21,199 +22,135 @@ const upload = multer({
   },
 });
 
-// POST /api/inventories - Create inventory with images
-router.post('/', requireAuth, upload.array('images', 10), async (req, res) => {
-  try {
-    const files = req.files as Express.Multer.File[];
-    const name = req.body.name as string | undefined;
-    const userId = (req as AuthenticatedRequest).user!.id;
-    
-    if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'Aucune image fournie' });
-    }
+// POST /api/inventories
+router.post('/', requireAuth, upload.array('images', 10), asyncHandler(async (req, res) => {
+  const files = req.files as Express.Multer.File[];
+  const name = req.body.name as string | undefined;
+  const userId = (req as AuthenticatedRequest).user!.id;
 
-    const inventory = await inventoryService.createInventory(userId, name);
-    
-    // Save images
-    for (let i = 0; i < files.length; i++) {
-      await imageService.saveImage(inventory.id, files[i], i);
-    }
-
-    // Start processing
-    await inventoryService.startProcessing(inventory.id);
-
-    res.status(201).json({
-      id: inventory.id,
-      status: inventory.status,
-      createdAt: inventory.createdAt,
-      message: 'Inventaire créé, traitement en cours',
-    });
-  } catch (error: any) {
-    console.error('Error creating inventory:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  if (!files || files.length === 0) {
+    throw AppError.badRequest('Aucune image fournie');
   }
-});
 
-// GET /api/inventories/:id - Get inventory by ID
-router.get('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    const inventory = await inventoryService.getInventoryById(inventoryId, userId);
-    
-    if (!inventory) {
-      return res.status(404).json({ error: 'Inventaire introuvable' });
-    }
+  const inventory = await inventoryService.createInventory(userId, name);
 
-    res.json(inventory);
-  } catch (error: any) {
-    console.error('Error fetching inventory:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  for (let i = 0; i < files.length; i++) {
+    await imageService.saveImage(inventory.id, files[i], i);
   }
-});
 
-// GET /api/inventories - List all inventories
-router.get('/', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 20;
-    const status = req.query.status as string | undefined;
+  await inventoryService.startProcessing(inventory.id);
 
-    const result = await inventoryService.listInventories(userId, page, limit, status);
-    res.json(result);
-  } catch (error: any) {
-    console.error('Error listing inventories:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  res.status(201).json({
+    id: inventory.id,
+    status: inventory.status,
+    createdAt: inventory.createdAt,
+    message: 'Inventaire cree, traitement en cours',
+  });
+}));
+
+// GET /api/inventories/:id
+router.get('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  const inventory = await inventoryService.getInventoryById(inventoryId, userId);
+
+  if (!inventory) {
+    throw AppError.notFound('Inventory');
   }
-});
 
-// GET /api/inventories/:id/images/:imageId - Get image
-router.get('/:id/images/:imageId', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    const imageId = String(req.params.imageId);
-    
-    // Verify inventory belongs to user
-    const inventory = await inventoryService.getInventoryById(inventoryId, userId);
-    if (!inventory) {
-      return res.status(404).json({ error: 'Inventaire introuvable' });
-    }
+  res.json(inventory);
+}));
 
-    const image = await imageService.getImageById(imageId);
-    
-    if (!image) {
-      return res.status(404).json({ error: 'Image introuvable' });
-    }
+// GET /api/inventories
+router.get('/', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const status = req.query.status as string | undefined;
 
-    // Verify image belongs to this inventory
-    if (image.inventoryId !== inventoryId) {
-      return res.status(403).json({ error: 'Cette image n\'appartient pas à cet inventaire' });
-    }
+  const result = await inventoryService.listInventories(userId, page, limit, status);
+  res.json(result);
+}));
 
-    res.setHeader('Content-Type', image.imageType);
-    res.setHeader('Cache-Control', 'private, max-age=31536000');
-    res.send(image.imageData);
-  } catch (error: any) {
-    console.error('Error fetching image:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+// GET /api/inventories/:id/images/:imageId
+router.get('/:id/images/:imageId', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  const imageId = String(req.params.imageId);
+
+  const inventory = await inventoryService.getInventoryById(inventoryId, userId);
+  if (!inventory) {
+    throw AppError.notFound('Inventory');
   }
-});
 
-// PATCH /api/inventories/:id - Update inventory
-router.patch('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    const updatedInventory = await inventoryService.updateInventory(inventoryId, userId, req.body);
-    res.json(updatedInventory);
-  } catch (error: any) {
-    if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: 'Inventaire introuvable' });
-    }
-    console.error('Error updating inventory:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  const image = await imageService.getImageById(imageId);
+
+  if (!image) {
+    throw AppError.notFound('Image');
   }
-});
 
-// POST /api/inventories/:id/images - Add images to existing inventory
-router.post('/:id/images', requireAuth, upload.array('images', 10), async (req, res) => {
-  try {
-    const files = req.files as Express.Multer.File[];
-    const inventoryId = String(req.params.id);
-    const userId = (req as AuthenticatedRequest).user!.id;
-    
-    if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'Aucune image fournie' });
-    }
-
-    const result = await inventoryService.addImagesToInventory(inventoryId, userId, files);
-    res.json(result);
-  } catch (error: any) {
-    if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: 'Inventaire introuvable' });
-    }
-    console.error('Error adding images to inventory:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+  if (image.inventoryId !== inventoryId) {
+    throw AppError.forbidden('Cette image n\'appartient pas a cet inventaire');
   }
-});
 
-// PATCH /api/inventories/:id/items/:itemId - Update inventory item
-router.patch('/:id/items/:itemId', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    const itemId = String(req.params.itemId);
-    
-    const updatedItem = await inventoryService.updateItem(
-      inventoryId,
-      itemId,
-      userId,
-      req.body
-    );
-    res.json(updatedItem);
-  } catch (error: any) {
-    if (error.message === 'Inventory not found' || error.message === 'Item not found') {
-      return res.status(404).json({ error: error.message === 'Item not found' ? 'Objet introuvable' : 'Inventaire introuvable' });
-    }
-    console.error('Error updating item:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
-  }
-});
+  res.setHeader('Content-Type', image.imageType);
+  res.setHeader('Cache-Control', 'private, max-age=31536000');
+  res.send(image.imageData);
+}));
 
-// DELETE /api/inventories/:id/items/:itemId - Delete inventory item
-router.delete('/:id/items/:itemId', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    const itemId = String(req.params.itemId);
-    
-    await inventoryService.deleteItem(inventoryId, itemId, userId);
-    res.json({ message: 'Objet supprimé' });
-  } catch (error: any) {
-    if (error.message === 'Inventory not found' || error.message === 'Item not found') {
-      return res.status(404).json({ error: error.message === 'Item not found' ? 'Objet introuvable' : 'Inventaire introuvable' });
-    }
-    console.error('Error deleting item:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
-  }
-});
+// PATCH /api/inventories/:id
+router.patch('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  const updatedInventory = await inventoryService.updateInventory(inventoryId, userId, req.body);
+  res.json(updatedInventory);
+}));
 
-// DELETE /api/inventories/:id - Delete inventory
-router.delete('/:id', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const inventoryId = String(req.params.id);
-    await inventoryService.deleteInventory(inventoryId, userId);
-    res.json({ message: 'Inventaire supprimé' });
-  } catch (error: any) {
-    if (error.message === 'Inventory not found') {
-      return res.status(404).json({ error: 'Inventaire introuvable' });
-    }
-    console.error('Error deleting inventory:', error);
-    res.status(500).json({ error: error.message || 'Erreur serveur' });
+// POST /api/inventories/:id/images
+router.post('/:id/images', requireAuth, upload.array('images', 10), asyncHandler(async (req, res) => {
+  const files = req.files as Express.Multer.File[];
+  const inventoryId = String(req.params.id);
+  const userId = (req as AuthenticatedRequest).user!.id;
+
+  if (!files || files.length === 0) {
+    throw AppError.badRequest('Aucune image fournie');
   }
-});
+
+  const result = await inventoryService.addImagesToInventory(inventoryId, userId, files);
+  res.json(result);
+}));
+
+// PATCH /api/inventories/:id/items/:itemId
+router.patch('/:id/items/:itemId', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  const itemId = String(req.params.itemId);
+
+  const updatedItem = await inventoryService.updateItem(
+    inventoryId,
+    itemId,
+    userId,
+    req.body
+  );
+  res.json(updatedItem);
+}));
+
+// DELETE /api/inventories/:id/items/:itemId
+router.delete('/:id/items/:itemId', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  const itemId = String(req.params.itemId);
+
+  await inventoryService.deleteItem(inventoryId, itemId, userId);
+  res.json({ message: 'Objet supprime' });
+}));
+
+// DELETE /api/inventories/:id
+router.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const inventoryId = String(req.params.id);
+  await inventoryService.deleteInventory(inventoryId, userId);
+  res.json({ message: 'Inventaire supprime' });
+}));
 
 export default router;

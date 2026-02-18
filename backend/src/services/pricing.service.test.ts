@@ -24,17 +24,21 @@ import { dataForSeoService } from './dataforseo.service';
 const mockSearch = dataForSeoService.search as ReturnType<typeof vi.fn>;
 
 describe('buildSearchQuery', () => {
-  it('returns quoted name only when no brand or model', () => {
-    expect(buildSearchQuery({ itemName: 'Laptop' })).toBe('"Laptop"');
+  it('translates French name to English keywords', () => {
+    expect(buildSearchQuery({ itemName: 'Canape en cuir marron' })).toBe('sofa leather brown');
   });
 
-  it('combines name, brand, and model', () => {
+  it('combines translated name with brand and model', () => {
     const input: PricingInput = {
-      itemName: 'Laptop',
-      brand: 'Dell',
-      model: 'XPS 15',
+      itemName: 'Canape en cuir marron',
+      brand: 'IKEA',
+      model: 'KIVIK',
     };
-    expect(buildSearchQuery(input)).toBe('"Laptop" "Dell" "XPS 15"');
+    expect(buildSearchQuery(input)).toBe('sofa leather brown IKEA KIVIK');
+  });
+
+  it('preserves unknown words (brands/models) in item name', () => {
+    expect(buildSearchQuery({ itemName: 'Televiseur Samsung' })).toBe('television samsung');
   });
 
   it('returns empty string when name is empty', () => {

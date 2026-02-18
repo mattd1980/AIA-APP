@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { VisionItem, ItemCategory } from '../types';
+import { VisionItem, ItemCategory, ItemCondition } from '../types';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -139,7 +139,7 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
       const rawItems = parsed.items || [];
       const validCategories: ItemCategory[] = ['furniture', 'electronics', 'clothing', 'appliances', 'decor', 'jewelry', 'art', 'collectibles', 'sports_equipment', 'other'];
       const personKeywords = /\b(personne|person|people|humain|human|child|children|kid|kids|baby|bébé|adult|adulte|homme|woman|femme|enfant|man|woman|visage|face)\b/i;
-      const items = rawItems.filter((item: any) => {
+      const items = rawItems.filter((item: Record<string, unknown>) => {
         const name = (item.name || '').toString();
         const desc = (item.description || '').toString();
         if (personKeywords.test(name) || personKeywords.test(desc)) {
@@ -150,30 +150,29 @@ Retournez UNIQUEMENT du JSON valide dans ce format exact:
       });
       console.log(`OpenAI identified ${items.length} items in image (${rawItems.length - items.length} excluded as person/non-object)`);
 
-      return items.map((item: any) => {
-        const cat = validCategories.includes(item.category) ? item.category : 'other';
+      return items.map((item: Record<string, unknown>) => {
+        const cat = validCategories.includes(item.category as ItemCategory) ? item.category as ItemCategory : 'other';
+        const bb = item.boundingBox as Record<string, number> | undefined;
         return {
-        name: item.name || 'Unknown Item',
+        name: (item.name as string) || 'Unknown Item',
         category: cat as ItemCategory,
-        brand: item.brand || undefined,
-        model: item.model || undefined,
-        condition: (item.condition || 'good') as any,
-        estimatedAge: item.estimatedAge !== undefined ? item.estimatedAge : undefined,
-        description: item.description || `${item.name || 'Item'} identified in image`,
-        boundingBox: item.boundingBox ? {
-          x: Math.max(0, Math.min(1, item.boundingBox.x || 0)),
-          y: Math.max(0, Math.min(1, item.boundingBox.y || 0)),
-          width: Math.max(0, Math.min(1, item.boundingBox.width || 0)),
-          height: Math.max(0, Math.min(1, item.boundingBox.height || 0)),
+        brand: (item.brand as string) || undefined,
+        model: (item.model as string) || undefined,
+        condition: ((item.condition as string) || 'good') as ItemCondition,
+        estimatedAge: item.estimatedAge !== undefined ? (item.estimatedAge as number) : undefined,
+        description: (item.description as string) || `${(item.name as string) || 'Item'} identified in image`,
+        boundingBox: bb ? {
+          x: Math.max(0, Math.min(1, bb.x || 0)),
+          y: Math.max(0, Math.min(1, bb.y || 0)),
+          width: Math.max(0, Math.min(1, bb.width || 0)),
+          height: Math.max(0, Math.min(1, bb.height || 0)),
         } : undefined,
       };
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('OpenAI API error:', error);
-      if (error.response) {
-        console.error('OpenAI API response error:', error.response.data);
-      }
-      throw new Error(`OpenAI API error: ${error.message}`);
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`OpenAI API error: ${msg}`);
     }
   }
 }

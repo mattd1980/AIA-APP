@@ -17,8 +17,11 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ImageWithBoundingBoxes from '@/components/ImageWithBoundingBoxes';
 import ImageWithBoundingBox from '@/components/ImageWithBoundingBox';
-import { roomsApi, visionModelsApi } from '@/services/api';
-import type { Room, RoomDetectedItem, VisionModel } from '@/services/api';
+import { createContainerApi, visionModelsApi } from '@/services/api';
+import type { Container, ContainerDetectedItem, VisionModel } from '@/services/api';
+import type { ContainerType } from '@/constants/container-config';
+import { getContainerUIConfig } from '@/constants/container-config';
+import { getApiError } from '@/utils/get-api-error';
 import { usePriceEstimation } from '@/hooks/use-price-estimation';
 import { SUGGESTED_OBJECTS } from '@/constants/suggestions';
 import { CATEGORY_LABELS as categoryLabels } from '@/constants/categories';
@@ -28,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Spinner } from '@/components/ui/spinner';
+
 const conditionLabels: Record<string, string> = {
   new: 'Neuf',
   excellent: 'Excellent',
@@ -36,46 +40,52 @@ const conditionLabels: Record<string, string> = {
   poor: 'Mauvais',
 };
 
-export default function RoomDetail() {
+interface ContainerDetailProps {
+  containerType: ContainerType;
+}
+
+export default function ContainerDetail({ containerType }: ContainerDetailProps) {
+  const config = getContainerUIConfig(containerType);
+  const containerApi = createContainerApi(containerType);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [room, setRoom] = useState<Room | null>(null);
+  const [container, setContainer] = useState<Container | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
-  const [editingRoomName, setEditingRoomName] = useState(false);
-  const [roomNameInput, setRoomNameInput] = useState('');
-  const [savingRoomName, setSavingRoomName] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [savingName, setSavingName] = useState(false);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [itemEditForm, setItemEditForm] = useState<Partial<RoomDetectedItem>>({});
+  const [itemEditForm, setItemEditForm] = useState<Partial<ContainerDetectedItem>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
   const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
   const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
   const { estimating, error: pricingError, estimate: handleEstimatePrices } = usePriceEstimation(
     id,
-    'room',
-    () => loadRoom(true)
+    containerType,
+    () => loadContainer(true)
   );
 
-  const loadRoom = async (silent = false) => {
+  const loadContainer = async (silent = false) => {
     if (!id) return;
     try {
       if (!silent) setLoading(true);
-      const data = await roomsApi.getById(id);
-      setRoom(data);
-    } catch (err) {
-      setRoom(null);
+      const data = await containerApi.getById(id);
+      setContainer(data);
+    } catch {
+      setContainer(null);
     } finally {
       if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadRoom();
+    loadContainer();
   }, [id]);
 
   useEffect(() => {
@@ -88,32 +98,32 @@ export default function RoomDetail() {
   }, []);
 
   useEffect(() => {
-    if (!room || room.analysisStatus !== 'processing') return;
-    const t = setInterval(() => loadRoom(true), 2500);
+    if (!container || container.analysisStatus !== 'processing') return;
+    const t = setInterval(() => loadContainer(true), 2500);
     return () => clearInterval(t);
-  }, [room?.analysisStatus, id]);
+  }, [container?.analysisStatus, id]);
 
-  // Default selected tab when room/analysisRuns load
+  // Default selected tab when container/analysisRuns load
   useEffect(() => {
-    if (!room) return;
-    const runs = room.analysisRuns ?? [];
-    const manualItems = (room.items ?? []).filter((i: RoomDetectedItem) => !i.roomAnalysisRunId);
+    if (!container) return;
+    const runs = container.analysisRuns ?? [];
+    const manual = (container.items ?? []).filter((i) => !i.containerRunId);
     if (selectedRunId === null && runs.length > 0) {
       setSelectedRunId(runs[0].id);
-    } else if (selectedRunId === null && manualItems.length > 0 && runs.length === 0) {
+    } else if (selectedRunId === null && manual.length > 0 && runs.length === 0) {
       setSelectedRunId('manual');
-    } else if (selectedRunId === null && (room.items?.length ?? 0) > 0) {
+    } else if (selectedRunId === null && (container.items?.length ?? 0) > 0) {
       setSelectedRunId('all');
     }
-  }, [room?.id, room?.analysisRuns?.length, room?.items?.length]);
+  }, [container?.id, container?.analysisRuns?.length, container?.items?.length]);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
   const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   // Tabs: one per analysis run (model) + optional "Manual" tab for comparing results
-  const analysisRuns = room?.analysisRuns ?? [];
-  const manualItems = (room?.items ?? []).filter((i: RoomDetectedItem) => !i.roomAnalysisRunId);
+  const analysisRuns = container?.analysisRuns ?? [];
+  const manualItems = (container?.items ?? []).filter((i) => !i.containerRunId);
   const modelLabel = (modelId: string) => visionModels.find((m) => m.id === modelId)?.label ?? modelId;
   const formatRunDate = (createdAt: string) =>
     new Date(createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -128,17 +138,17 @@ export default function RoomDetail() {
   if (manualItems.length > 0) {
     tabs.push({ id: 'manual', label: 'Ajoutés manuellement', count: manualItems.length });
   }
-  if (tabs.length === 0 && (room?.items?.length ?? 0) > 0) {
-    tabs.push({ id: 'all', label: 'Tous les objets', count: room!.items!.length });
+  if (tabs.length === 0 && (container?.items?.length ?? 0) > 0) {
+    tabs.push({ id: 'all', label: 'Tous les objets', count: container!.items!.length });
   }
-  const displayedItems: RoomDetectedItem[] =
+  const displayedItems: ContainerDetectedItem[] =
     selectedRunId === 'manual'
       ? manualItems
       : selectedRunId === 'all' || !selectedRunId
-        ? room?.items ?? []
+        ? container?.items ?? []
         : analysisRuns.find((r) => r.id === selectedRunId)?.items ?? [];
 
-  const uploadRoomImages = async (files: File[]) => {
+  const uploadImages = async (files: File[]) => {
     if (!id || files.length === 0) return;
     const maxSize = 10 * 1024 * 1024;
     const accepted = files.filter(
@@ -150,10 +160,10 @@ export default function RoomDetail() {
     }
     try {
       setUploading(true);
-      await roomsApi.addImages(id, accepted);
-      loadRoom();
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur lors de l\'ajout des photos');
+      await containerApi.addImages(id, accepted);
+      loadContainer();
+    } catch (err: unknown) {
+      alert(getApiError(err, 'Erreur lors de l\'ajout des photos'));
     } finally {
       setUploading(false);
     }
@@ -166,10 +176,10 @@ export default function RoomDetail() {
       if (!id || acceptedFiles.length === 0) return;
       try {
         setUploading(true);
-        await roomsApi.addImages(id, acceptedFiles);
-        loadRoom();
-      } catch (err: any) {
-        alert(err.response?.data?.error || 'Erreur lors de l\'ajout des photos');
+        await containerApi.addImages(id, acceptedFiles);
+        loadContainer();
+      } catch (err: unknown) {
+        alert(getApiError(err, 'Erreur lors de l\'ajout des photos'));
       } finally {
         setUploading(false);
       }
@@ -180,14 +190,14 @@ export default function RoomDetail() {
   const handleCameraFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files?.length) {
-      uploadRoomImages(Array.from(files));
+      uploadImages(Array.from(files));
     }
     if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
   const handleGalleryFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files?.length) {
-      uploadRoomImages(Array.from(files));
+      uploadImages(Array.from(files));
     }
     if (galleryInputRef.current) galleryInputRef.current.value = '';
   };
@@ -196,9 +206,9 @@ export default function RoomDetail() {
     if (!id || !confirm('Supprimer cette photo ?')) return;
     try {
       setDeletingId(imageId);
-      await roomsApi.deleteImage(id, imageId);
-      loadRoom();
-    } catch (err) {
+      await containerApi.deleteImage(id, imageId);
+      loadContainer();
+    } catch {
       alert('Erreur lors de la suppression');
     } finally {
       setDeletingId(null);
@@ -206,13 +216,13 @@ export default function RoomDetail() {
   };
 
   const handleAnalyze = async () => {
-    if (!id || room?.images.length === 0) return;
+    if (!id || container?.images.length === 0) return;
     try {
       setAnalyzing(true);
-      await roomsApi.analyze(id, selectedVisionModel);
-      await loadRoom(true);
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur lors du lancement de l\'analyse');
+      await containerApi.analyze(id, selectedVisionModel);
+      await loadContainer(true);
+    } catch (err: unknown) {
+      alert(getApiError(err, 'Erreur lors du lancement de l\'analyse'));
     } finally {
       setAnalyzing(false);
     }
@@ -222,14 +232,14 @@ export default function RoomDetail() {
     if (!id) return;
     try {
       setAddingItem(true);
-      await roomsApi.addItem(id, {
+      await containerApi.addItem(id, {
         itemName: obj.name,
         category: obj.category,
         condition: 'good',
       });
-      await loadRoom(true);
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur lors de l\'ajout');
+      await loadContainer(true);
+    } catch (err: unknown) {
+      alert(getApiError(err, 'Erreur lors de l\'ajout'));
     } finally {
       setAddingItem(false);
     }
@@ -239,38 +249,38 @@ export default function RoomDetail() {
     if (!id || !confirm('Supprimer cet objet de la liste ?')) return;
     try {
       setDeletingItemId(itemId);
-      await roomsApi.deleteItem(id, itemId);
-      await loadRoom(true);
-    } catch (err) {
+      await containerApi.deleteItem(id, itemId);
+      await loadContainer(true);
+    } catch {
       alert('Erreur lors de la suppression');
     } finally {
       setDeletingItemId(null);
     }
   };
 
-  const startEditRoomName = () => {
-    setRoomNameInput(room?.name ?? '');
-    setEditingRoomName(true);
+  const startEditName = () => {
+    setNameInput(container?.name ?? '');
+    setEditingName(true);
   };
-  const cancelEditRoomName = () => {
-    setEditingRoomName(false);
-    setRoomNameInput('');
+  const cancelEditName = () => {
+    setEditingName(false);
+    setNameInput('');
   };
-  const handleSaveRoomName = async () => {
-    if (!id || !roomNameInput.trim()) return;
+  const handleSaveName = async () => {
+    if (!id || !nameInput.trim()) return;
     try {
-      setSavingRoomName(true);
-      await roomsApi.update(id, roomNameInput.trim());
-      setRoom((r) => (r ? { ...r, name: roomNameInput.trim() } : r));
-      cancelEditRoomName();
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur');
+      setSavingName(true);
+      await containerApi.update(id, nameInput.trim());
+      setContainer((c) => (c ? { ...c, name: nameInput.trim() } : c));
+      cancelEditName();
+    } catch (err: unknown) {
+      alert(getApiError(err, 'Erreur'));
     } finally {
-      setSavingRoomName(false);
+      setSavingName(false);
     }
   };
 
-  const startEditItem = (item: RoomDetectedItem) => {
+  const startEditItem = (item: ContainerDetectedItem) => {
     setEditingItemId(item.id);
     setItemEditForm({
       itemName: item.itemName,
@@ -289,7 +299,7 @@ export default function RoomDetail() {
     if (!id || !editingItemId || !itemEditForm.itemName?.trim() || !itemEditForm.category || !itemEditForm.condition) return;
     try {
       setSavingItemId(editingItemId);
-      await roomsApi.updateItem(id, editingItemId, {
+      await containerApi.updateItem(id, editingItemId, {
         itemName: itemEditForm.itemName.trim(),
         category: itemEditForm.category,
         condition: itemEditForm.condition,
@@ -297,10 +307,10 @@ export default function RoomDetail() {
         replacementValue: itemEditForm.replacementValue,
         notes: itemEditForm.notes ?? undefined,
       });
-      await loadRoom(true);
+      await loadContainer(true);
       cancelEditItem();
-    } catch (err: any) {
-      alert(err.response?.data?.error || 'Erreur');
+    } catch (err: unknown) {
+      alert(getApiError(err, 'Erreur'));
     } finally {
       setSavingItemId(null);
     }
@@ -316,11 +326,11 @@ export default function RoomDetail() {
     );
   }
 
-  if (!room) {
+  if (!container) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Alert variant="destructive">
-          <AlertDescription>Pièce introuvable</AlertDescription>
+          <AlertDescription>{config.notFoundLabel}</AlertDescription>
         </Alert>
         <Button type="button" variant="ghost" className="mt-4" onClick={() => navigate('/')}>
           <FontAwesomeIcon icon={faArrowLeft} className="mr-2" />
@@ -330,8 +340,8 @@ export default function RoomDetail() {
     );
   }
 
-  const locationId = room.location?.id ?? (room as any).locationId;
-  const images = room.images ?? [];
+  const locationId = container.location?.id ?? (container as { locationId?: string }).locationId;
+  const images = container.images ?? [];
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -348,25 +358,25 @@ export default function RoomDetail() {
       <Card className="mb-6 shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-center gap-2 flex-wrap">
-            {editingRoomName ? (
+            {editingName ? (
               <>
                 <Input
                   type="text"
                   className="min-w-[200px] flex-1"
-                  value={roomNameInput}
-                  onChange={(e) => setRoomNameInput(e.target.value)}
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSaveRoomName();
-                    if (e.key === 'Escape') cancelEditRoomName();
+                    if (e.key === 'Enter') handleSaveName();
+                    if (e.key === 'Escape') cancelEditName();
                   }}
                   autoFocus
                 />
                 <Button
                   type="button"
-                  variant="default"
+                  variant={config.buttonVariant}
                   size="sm"
-                  onClick={handleSaveRoomName}
-                  disabled={savingRoomName || !roomNameInput.trim()}
+                  onClick={handleSaveName}
+                  disabled={savingName || !nameInput.trim()}
                   title="Enregistrer"
                 >
                   <FontAwesomeIcon icon={faCheck} />
@@ -375,8 +385,8 @@ export default function RoomDetail() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={cancelEditRoomName}
-                  disabled={savingRoomName}
+                  onClick={cancelEditName}
+                  disabled={savingName}
                   title="Annuler"
                 >
                   <FontAwesomeIcon icon={faTimes} />
@@ -384,13 +394,13 @@ export default function RoomDetail() {
               </>
             ) : (
               <>
-                <h1 className="text-3xl font-bold">{room.name}</h1>
+                <h1 className="text-3xl font-bold">{container.name}</h1>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={startEditRoomName}
-                  title="Modifier le nom de la pièce"
+                  onClick={startEditName}
+                  title={config.editNameTitle}
                 >
                   <FontAwesomeIcon icon={faPen} />
                 </Button>
@@ -398,17 +408,17 @@ export default function RoomDetail() {
             )}
           </div>
           <p className="text-muted-foreground">
-            {room.location?.name && `Lieu : ${room.location.name}`}
+            {container.location?.name && `Lieu : ${container.location.name}`}
           </p>
           {images.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Modèle IA :</span>
+                <span>Modele IA :</span>
                 <select
                   className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm ring-2 ring-transparent focus:ring-2 focus:ring-ring"
                   value={selectedVisionModel}
                   onChange={(e) => setSelectedVisionModel(e.target.value)}
-                  disabled={analyzing || room.analysisStatus === 'processing'}
+                  disabled={analyzing || container.analysisStatus === 'processing'}
                 >
                   {visionModels.length === 0 ? (
                     <option value={selectedVisionModel}>—</option>
@@ -421,17 +431,17 @@ export default function RoomDetail() {
               </label>
               <Button
                 type="button"
-                variant="default"
+                variant={config.buttonVariant}
                 onClick={handleAnalyze}
-                disabled={analyzing || room.analysisStatus === 'processing'}
+                disabled={analyzing || container.analysisStatus === 'processing'}
               >
-                {room.analysisStatus === 'processing' ? (
+                {container.analysisStatus === 'processing' ? (
                   <>
                     <Spinner className="mr-2 size-4" data-icon="inline-start" />
                     Analyse en cours…
-                    {room.analysisMetadata?.totalImages != null && (
+                    {container.analysisMetadata?.totalImages != null && (
                       <span className="ml-2 opacity-80">
-                        ({room.analysisMetadata.processedImages ?? 0}/{room.analysisMetadata.totalImages} photo(s))
+                        ({container.analysisMetadata.processedImages ?? 0}/{container.analysisMetadata.totalImages} photo(s))
                       </span>
                     )}
                   </>
@@ -447,12 +457,12 @@ export default function RoomDetail() {
         </CardContent>
       </Card>
 
-      {room.analysisStatus === 'error' && (
+      {container.analysisStatus === 'error' && (
         <Alert className="mb-4 border-amber-500/50 bg-amber-50 text-amber-900 dark:border-amber-500/50 dark:bg-amber-950 dark:text-amber-100">
           <AlertDescription>
-            {room.analysisMetadata?.errors?.length
-              ? `Analyse terminée avec des erreurs : ${room.analysisMetadata.errors.join(' ; ')}`
-              : (room.analysisMetadata as any)?.error ?? 'L\'analyse a échoué.'}
+            {container.analysisMetadata?.errors?.length
+              ? `Analyse terminée avec des erreurs : ${container.analysisMetadata.errors.join(' ; ')}`
+              : container.analysisMetadata?.error ?? 'L\'analyse a échoué.'}
           </AlertDescription>
         </Alert>
       )}
@@ -462,7 +472,7 @@ export default function RoomDetail() {
         <div className="mb-4 flex gap-4">
           <Button
             type="button"
-            variant="default"
+            variant={config.buttonVariant}
             className="flex-1"
             onClick={() => cameraInputRef.current?.click()}
             disabled={uploading}
@@ -490,7 +500,7 @@ export default function RoomDetail() {
           />
           <Button
             type="button"
-            variant="secondary"
+            variant={config.galleryButtonVariant}
             className="flex-1"
             onClick={() => galleryInputRef.current?.click()}
             disabled={uploading}
@@ -504,11 +514,11 @@ export default function RoomDetail() {
       {/* Ajouter des photos */}
       <div
         {...getRootProps()}
-        className="mb-6 flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-primary/30 bg-muted/50 transition-colors hover:border-primary/50"
+        className={`mb-6 flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed ${config.borderDashed} bg-muted/50 transition-colors ${config.borderDashedHover}`}
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center justify-center p-6">
-          <FontAwesomeIcon icon={faUpload} className="mb-2 text-4xl text-primary" />
+          <FontAwesomeIcon icon={faUpload} className={`mb-2 text-4xl ${config.accentColor}`} />
           <p className="text-center text-muted-foreground">
             {isDragActive ? 'Déposez les images ici' : isMobile ? 'Ou glissez des photos ici' : 'Glissez des photos ici ou cliquez pour sélectionner'}
           </p>
@@ -529,10 +539,10 @@ export default function RoomDetail() {
             <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
               {images.map((img) => {
                 const itemsInImage = displayedItems.filter(
-                  (item: RoomDetectedItem) =>
-                    (item.roomImageId ?? (item.aiAnalysis as any)?.sourceImageId) === img.id && item.aiAnalysis?.boundingBox
+                  (item) =>
+                    (item.containerImageId ?? item.aiAnalysis?.sourceImageId) === img.id && item.aiAnalysis?.boundingBox
                 );
-                const boxes = itemsInImage.map((item: RoomDetectedItem) => ({
+                const boxes = itemsInImage.map((item) => ({
                   boundingBox: item.aiAnalysis!.boundingBox!,
                   itemName: item.itemName,
                 }));
@@ -540,13 +550,13 @@ export default function RoomDetail() {
                   <div key={img.id} className="relative group">
                     {boxes.length > 0 ? (
                       <ImageWithBoundingBoxes
-                        imageUrl={roomsApi.getImageUrl(id!, img.id)}
+                        imageUrl={containerApi.getImageUrl(id!, img.id)}
                         boxes={boxes}
                         className="w-full h-32"
                       />
                     ) : (
                       <img
-                        src={roomsApi.getImageUrl(id!, img.id)}
+                        src={containerApi.getImageUrl(id!, img.id)}
                         alt={img.fileName}
                         className="h-32 w-full rounded-lg border border-border object-cover"
                       />
@@ -611,7 +621,7 @@ export default function RoomDetail() {
       </Card>
 
       {/* Objets détectés / inventaire – onglets par modèle pour comparer */}
-      {(room?.items?.length ?? 0) > 0 && (
+      {(container?.items?.length ?? 0) > 0 && (
         <Card className="mt-6 shadow-md">
           <CardHeader>
             <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -659,8 +669,8 @@ export default function RoomDetail() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {displayedItems.map((item: RoomDetectedItem) => {
-                const sourceImageId = item.roomImageId ?? (item.aiAnalysis as any)?.sourceImageId;
+              {displayedItems.map((item) => {
+                const sourceImageId = item.containerImageId ?? item.aiAnalysis?.sourceImageId;
                 const hasBox = item.aiAnalysis?.boundingBox;
                 const isEditing = editingItemId === item.id;
                 return (
@@ -752,7 +762,7 @@ export default function RoomDetail() {
                           <div className="flex gap-2">
                             <Button
                               type="button"
-                              variant="default"
+                              variant={config.buttonVariant}
                               size="sm"
                               onClick={handleSaveItem}
                               disabled={savingItemId === item.id || !(itemEditForm.itemName?.trim() && itemEditForm.category && itemEditForm.condition)}
@@ -776,14 +786,14 @@ export default function RoomDetail() {
                             <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border border-border">
                               {hasBox ? (
                                 <ImageWithBoundingBox
-                                  imageUrl={roomsApi.getImageUrl(id!, sourceImageId)}
+                                  imageUrl={containerApi.getImageUrl(id!, sourceImageId)}
                                   boundingBox={item.aiAnalysis!.boundingBox!}
                                   itemName={item.itemName}
                                   className="w-full h-full"
                                 />
                               ) : (
                                 <img
-                                  src={roomsApi.getImageUrl(id!, sourceImageId)}
+                                  src={containerApi.getImageUrl(id!, sourceImageId)}
                                   alt={item.itemName}
                                   className="w-full h-full object-cover"
                                 />
@@ -801,8 +811,8 @@ export default function RoomDetail() {
                             <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                               <span className="font-semibold text-primary">{Number(item.estimatedValue).toFixed(2)} $</span>
                               <span className="text-muted-foreground">remplacement : {Number(item.replacementValue).toFixed(2)} $</span>
-                              {Boolean((item.aiAnalysis as Record<string, unknown>)?.pricing) && (() => {
-                                const pricing = (item.aiAnalysis as Record<string, unknown>).pricing as Record<string, unknown>;
+                              {Boolean(item.aiAnalysis?.pricing) && (() => {
+                                const pricing = item.aiAnalysis.pricing as Record<string, unknown>;
                                 return (
                                   <span
                                     className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-900 dark:text-green-200"

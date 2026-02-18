@@ -54,7 +54,7 @@ class DataForSeoService {
           {
             keyword: query,
             location_code: 2124, // Canada
-            language_code: 'fr',
+            language_code: 'en',
             device: 'desktop',
             os: 'windows',
           },

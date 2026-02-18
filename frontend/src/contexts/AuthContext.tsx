@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.get('/api/auth/me');
       setUser(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // User is not authenticated, which is fine
       setUser(null);
       // 401 is expected when not authenticated — ignore silently

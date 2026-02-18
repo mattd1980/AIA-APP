@@ -1,4 +1,7 @@
 import prisma from '../database/client';
+import type { ItemCategory, ItemCondition } from '@prisma/client';
+import { AppError } from '../utils/app-error';
+import type { ContainerType } from '../types/container';
 
 class LocationService {
   async listLocations(userId: string) {
@@ -36,7 +39,7 @@ class LocationService {
         },
       },
     });
-    if (!loc) throw new Error('Location not found');
+    if (!loc) throw AppError.notFound('Location');
     return loc;
   }
 
@@ -77,7 +80,7 @@ class LocationService {
         },
       },
     });
-    if (!room) throw new Error('Room not found');
+    if (!room) throw AppError.notFound('Room');
     return room;
   }
 
@@ -112,7 +115,7 @@ class LocationService {
     const img = await prisma.roomImage.findFirst({
       where: { id: imageId, room: { location: { userId } } },
     });
-    if (!img) throw new Error('Image not found');
+    if (!img) throw AppError.notFound('Image');
     return img;
   }
 
@@ -131,9 +134,9 @@ class LocationService {
       data: {
         roomId,
         roomImageId: null,
-        category: data.category as any,
+        category: data.category as ItemCategory,
         itemName: data.itemName,
-        condition: data.condition as any,
+        condition: data.condition as ItemCondition,
         estimatedValue: data.estimatedValue ?? 0,
         replacementValue: data.replacementValue ?? 0,
         notes: data.notes ?? null,
@@ -151,13 +154,13 @@ class LocationService {
     const item = await prisma.roomDetectedItem.findFirst({
       where: { id: itemId, roomId, room: { location: { userId } } },
     });
-    if (!item) throw new Error('Item not found');
+    if (!item) throw AppError.notFound('Item');
     return await prisma.roomDetectedItem.update({
       where: { id: itemId },
       data: {
         ...(data.itemName != null && { itemName: data.itemName }),
-        ...(data.category != null && { category: data.category as any }),
-        ...(data.condition != null && { condition: data.condition as any }),
+        ...(data.category != null && { category: data.category as ItemCategory }),
+        ...(data.condition != null && { condition: data.condition as ItemCondition }),
         ...(data.estimatedValue != null && { estimatedValue: data.estimatedValue }),
         ...(data.replacementValue != null && { replacementValue: data.replacementValue }),
         ...(data.notes !== undefined && { notes: data.notes ?? null }),
@@ -169,7 +172,7 @@ class LocationService {
     const item = await prisma.roomDetectedItem.findFirst({
       where: { id: itemId, room: { location: { userId } } },
     });
-    if (!item) throw new Error('Item not found');
+    if (!item) throw AppError.notFound('Item');
     await prisma.roomDetectedItem.delete({ where: { id: itemId } });
   }
 
@@ -194,7 +197,7 @@ class LocationService {
         },
       },
     });
-    if (!safe) throw new Error('Safe not found');
+    if (!safe) throw AppError.notFound('Safe');
     return safe;
   }
 
@@ -229,7 +232,7 @@ class LocationService {
     const img = await prisma.safeImage.findFirst({
       where: { id: imageId, safe: { location: { userId } } },
     });
-    if (!img) throw new Error('Image not found');
+    if (!img) throw AppError.notFound('Image');
     return img;
   }
 
@@ -248,9 +251,9 @@ class LocationService {
       data: {
         safeId,
         safeImageId: null,
-        category: data.category as any,
+        category: data.category as ItemCategory,
         itemName: data.itemName,
-        condition: data.condition as any,
+        condition: data.condition as ItemCondition,
         estimatedValue: data.estimatedValue ?? 0,
         replacementValue: data.replacementValue ?? 0,
         notes: data.notes ?? null,
@@ -268,13 +271,13 @@ class LocationService {
     const item = await prisma.safeDetectedItem.findFirst({
       where: { id: itemId, safeId, safe: { location: { userId } } },
     });
-    if (!item) throw new Error('Item not found');
+    if (!item) throw AppError.notFound('Item');
     return await prisma.safeDetectedItem.update({
       where: { id: itemId },
       data: {
         ...(data.itemName != null && { itemName: data.itemName }),
-        ...(data.category != null && { category: data.category as any }),
-        ...(data.condition != null && { condition: data.condition as any }),
+        ...(data.category != null && { category: data.category as ItemCategory }),
+        ...(data.condition != null && { condition: data.condition as ItemCondition }),
         ...(data.estimatedValue != null && { estimatedValue: data.estimatedValue }),
         ...(data.replacementValue != null && { replacementValue: data.replacementValue }),
         ...(data.notes !== undefined && { notes: data.notes ?? null }),
@@ -286,8 +289,60 @@ class LocationService {
     const item = await prisma.safeDetectedItem.findFirst({
       where: { id: itemId, safe: { location: { userId } } },
     });
-    if (!item) throw new Error('Item not found');
+    if (!item) throw AppError.notFound('Item');
     await prisma.safeDetectedItem.delete({ where: { id: itemId } });
+  }
+
+  // Container dispatch methods
+  getContainerById(type: ContainerType, id: string, userId: string) {
+    return type === 'room' ? this.getRoomById(id, userId) : this.getSafeById(id, userId);
+  }
+
+  updateContainer(type: ContainerType, id: string, userId: string, name: string) {
+    return type === 'room' ? this.updateRoom(id, userId, name) : this.updateSafe(id, userId, name);
+  }
+
+  deleteContainer(type: ContainerType, id: string, userId: string) {
+    return type === 'room' ? this.deleteRoom(id, userId) : this.deleteSafe(id, userId);
+  }
+
+  saveContainerImage(type: ContainerType, id: string, userId: string, file: Express.Multer.File, uploadOrder: number) {
+    return type === 'room' ? this.saveRoomImage(id, userId, file, uploadOrder) : this.saveSafeImage(id, userId, file, uploadOrder);
+  }
+
+  getContainerImageById(type: ContainerType, imageId: string, userId: string) {
+    return type === 'room' ? this.getRoomImageById(imageId, userId) : this.getSafeImageById(imageId, userId);
+  }
+
+  deleteContainerImage(type: ContainerType, imageId: string, userId: string) {
+    return type === 'room' ? this.deleteRoomImage(imageId, userId) : this.deleteSafeImage(imageId, userId);
+  }
+
+  createContainerManualItem(
+    type: ContainerType,
+    id: string,
+    userId: string,
+    data: { itemName: string; category: string; condition: string; estimatedValue?: number; replacementValue?: number; notes?: string }
+  ) {
+    return type === 'room'
+      ? this.createRoomManualItem(id, userId, data)
+      : this.createSafeManualItem(id, userId, data);
+  }
+
+  updateContainerItem(
+    type: ContainerType,
+    containerId: string,
+    itemId: string,
+    userId: string,
+    data: { itemName?: string; category?: string; condition?: string; estimatedValue?: number; replacementValue?: number; notes?: string }
+  ) {
+    return type === 'room'
+      ? this.updateRoomItem(containerId, itemId, userId, data)
+      : this.updateSafeItem(containerId, itemId, userId, data);
+  }
+
+  deleteContainerItem(type: ContainerType, itemId: string, userId: string) {
+    return type === 'room' ? this.deleteRoomItem(itemId, userId) : this.deleteSafeItem(itemId, userId);
   }
 
   /** All locations with rooms, safes, and their items for CSV export */

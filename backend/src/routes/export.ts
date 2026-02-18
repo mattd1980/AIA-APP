@@ -1,19 +1,20 @@
 import { Router } from 'express';
 import { locationService } from '../services/location.service';
 import { requireAuth, AuthenticatedRequest } from '../middleware/auth';
+import { asyncHandler } from '../utils/async-handler';
 
 const router = Router();
 
 const categoryLabels: Record<string, string> = {
   furniture: 'Meubles',
-  electronics: 'Électronique',
-  clothing: 'Vêtements',
-  appliances: 'Électroménagers',
-  decor: 'Décoration',
+  electronics: 'Electronique',
+  clothing: 'Vetements',
+  appliances: 'Electromenagers',
+  decor: 'Decoration',
   jewelry: 'Bijoux',
   art: 'Art',
   collectibles: 'Collections',
-  sports_equipment: 'Équipement sportif',
+  sports_equipment: 'Equipement sportif',
   other: 'Autre',
 };
 const conditionLabels: Record<string, string> = {
@@ -33,92 +34,87 @@ function escapeCsvCell(value: string | number | null | undefined): string {
   return s;
 }
 
-// GET /api/export/inventory-csv — CSV for insurer (addresses, rooms, tags)
-router.get('/inventory-csv', requireAuth, async (req, res) => {
-  try {
-    const userId = (req as AuthenticatedRequest).user!.id;
-    const locations = await locationService.getExportData(userId);
+// GET /api/export/inventory-csv
+router.get('/inventory-csv', requireAuth, asyncHandler(async (req, res) => {
+  const userId = (req as AuthenticatedRequest).user!.id;
+  const locations = await locationService.getExportData(userId);
 
-    const headers = [
-      'Lieu',
-      'Adresse',
-      'Type',
-      'Nom pièce/coffre',
-      'Catégorie',
-      'Objet',
-      'Marque',
-      'Modèle',
-      'État',
-      'Valeur estimée (€)',
-      'Valeur remplacement (€)',
-      'Notes',
-    ];
-    const rows: string[][] = [headers.map(escapeCsvCell)];
+  const headers = [
+    'Lieu',
+    'Adresse',
+    'Type',
+    'Nom piece/coffre',
+    'Categorie',
+    'Objet',
+    'Marque',
+    'Modele',
+    'Etat',
+    'Valeur estimee (EUR)',
+    'Valeur remplacement (EUR)',
+    'Notes',
+  ];
+  const rows: string[][] = [headers.map(escapeCsvCell)];
 
-    for (const loc of locations) {
-      const lieu = loc.name;
-      const adresse = loc.address ?? '';
+  for (const loc of locations) {
+    const lieu = loc.name;
+    const adresse = loc.address ?? '';
 
-      for (const room of loc.rooms) {
-        const type = 'Pièce';
-        const nom = room.name;
-        if (room.items.length === 0) {
-          rows.push([lieu, adresse, type, nom, '', '', '', '', '', '', '', ''].map(escapeCsvCell));
-        } else {
-          for (const item of room.items) {
-            rows.push([
-              lieu,
-              adresse,
-              type,
-              nom,
-              categoryLabels[item.category] ?? item.category,
-              item.itemName,
-              item.brand ?? '',
-              item.model ?? '',
-              conditionLabels[item.condition] ?? item.condition,
-              Number(item.estimatedValue).toString(),
-              Number(item.replacementValue).toString(),
-              item.notes ?? '',
-            ].map(escapeCsvCell));
-          }
-        }
-      }
-
-      for (const safe of loc.safes) {
-        const type = 'Coffre';
-        const nom = safe.name;
-        if (safe.items.length === 0) {
-          rows.push([lieu, adresse, type, nom, '', '', '', '', '', '', '', ''].map(escapeCsvCell));
-        } else {
-          for (const item of safe.items) {
-            rows.push([
-              lieu,
-              adresse,
-              type,
-              nom,
-              categoryLabels[item.category] ?? item.category,
-              item.itemName,
-              item.brand ?? '',
-              item.model ?? '',
-              conditionLabels[item.condition] ?? item.condition,
-              Number(item.estimatedValue).toString(),
-              Number(item.replacementValue).toString(),
-              item.notes ?? '',
-            ].map(escapeCsvCell));
-          }
+    for (const room of loc.rooms) {
+      const type = 'Piece';
+      const nom = room.name;
+      if (room.items.length === 0) {
+        rows.push([lieu, adresse, type, nom, '', '', '', '', '', '', '', ''].map(escapeCsvCell));
+      } else {
+        for (const item of room.items) {
+          rows.push([
+            lieu,
+            adresse,
+            type,
+            nom,
+            categoryLabels[item.category] ?? item.category,
+            item.itemName,
+            item.brand ?? '',
+            item.model ?? '',
+            conditionLabels[item.condition] ?? item.condition,
+            Number(item.estimatedValue).toString(),
+            Number(item.replacementValue).toString(),
+            item.notes ?? '',
+          ].map(escapeCsvCell));
         }
       }
     }
 
-    const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\r\n');
-    const filename = `inventaire-assurance-${new Date().toISOString().slice(0, 10)}.csv`;
-    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(csv);
-  } catch (error: any) {
-    console.error('Error exporting CSV:', error);
-    res.status(500).json({ error: error.message || 'Erreur lors de l\'export' });
+    for (const safe of loc.safes) {
+      const type = 'Coffre';
+      const nom = safe.name;
+      if (safe.items.length === 0) {
+        rows.push([lieu, adresse, type, nom, '', '', '', '', '', '', '', ''].map(escapeCsvCell));
+      } else {
+        for (const item of safe.items) {
+          rows.push([
+            lieu,
+            adresse,
+            type,
+            nom,
+            categoryLabels[item.category] ?? item.category,
+            item.itemName,
+            item.brand ?? '',
+            item.model ?? '',
+            conditionLabels[item.condition] ?? item.condition,
+            Number(item.estimatedValue).toString(),
+            Number(item.replacementValue).toString(),
+            item.notes ?? '',
+          ].map(escapeCsvCell));
+        }
+      }
+    }
   }
-});
+
+  const csv = '\uFEFF' + rows.map((r) => r.join(',')).join('\r\n');
+  const filename = `inventaire-assurance-${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(csv);
+}));
 
 export default router;

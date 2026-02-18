@@ -7,8 +7,7 @@ import Upload from './pages/Upload';
 import InventoryDetail from './pages/InventoryDetail';
 import LocationNew from './pages/LocationNew';
 import LocationDetail from './pages/LocationDetail';
-import RoomDetail from './pages/RoomDetail';
-import SafeDetail from './pages/SafeDetail';
+import ContainerDetail from './pages/ContainerDetail';
 import Login from './pages/Login';
 import Admin from './pages/Admin';
 import Privacy from './pages/Privacy';
@@ -39,8 +38,8 @@ function App() {
                       <Route path="/" element={<Home />} />
                       <Route path="/location/new" element={<LocationNew />} />
                       <Route path="/location/:id" element={<LocationDetail />} />
-                      <Route path="/room/:id" element={<RoomDetail />} />
-                      <Route path="/safe/:id" element={<SafeDetail />} />
+                      <Route path="/room/:id" element={<ContainerDetail containerType="room" />} />
+                      <Route path="/safe/:id" element={<ContainerDetail containerType="safe" />} />
                       <Route path="/new" element={<Upload />} />
                       <Route path="/inventory/:id" element={<InventoryDetail />} />
                       <Route path="*" element={<Navigate to="/" replace />} />

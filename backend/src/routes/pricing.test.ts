@@ -25,11 +25,13 @@ vi.mock('../services/pricing.service', () => ({
 }));
 
 import pricingRouter from './pricing';
+import { errorHandler } from '../middleware/error-handler';
 
 function createApp() {
   const app = express();
   app.use(express.json());
   app.use('/api/pricing', pricingRouter);
+  app.use(errorHandler);
   return app;
 }
 

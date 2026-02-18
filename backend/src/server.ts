@@ -9,8 +9,7 @@ import session from 'express-session';
 import passport from 'passport';
 import inventoryRoutes from './routes/inventories';
 import locationRoutes from './routes/locations';
-import roomRoutes from './routes/rooms';
-import safeRoutes from './routes/safes';
+import { createContainerRouter } from './routes/container-routes';
 import healthRoutes from './routes/health';
 import reportRoutes from './routes/reports';
 import authRoutes from './routes/auth';
@@ -18,6 +17,7 @@ import adminRoutes from './routes/admin';
 import exportRoutes from './routes/export';
 import visionRoutes from './routes/vision';
 import pricingRoutes from './routes/pricing';
+import { errorHandler } from './middleware/error-handler';
 
 dotenv.config();
 
@@ -126,12 +126,15 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/inventories', inventoryRoutes);
 app.use('/api/inventories', reportRoutes);
 app.use('/api/locations', locationRoutes);
-app.use('/api/rooms', roomRoutes);
-app.use('/api/safes', safeRoutes);
+app.use('/api/rooms', createContainerRouter('room'));
+app.use('/api/safes', createContainerRouter('safe'));
 app.use('/api/export', exportRoutes);
 app.use('/api/vision-models', visionRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/health', healthRoutes);
+
+// Centralized error handler (must be after all routes)
+app.use(errorHandler);
 
 // Serve static files from frontend build
 // Try multiple possible paths (Railway might structure things differently)
