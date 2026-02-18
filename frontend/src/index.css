@@ -88,12 +88,6 @@
   }
 }
 
-/* Prevent content overflow in cards */
-.card-body {
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
 /* Ensure grid items don't overflow */
 .grid > * {
   min-width: 0;

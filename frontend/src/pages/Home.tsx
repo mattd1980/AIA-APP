@@ -1,20 +1,48 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faFileCsv, faPlus } from '@fortawesome/free-solid-svg-icons';
+import { faFileCsv } from '@fortawesome/free-solid-svg-icons';
 import { locationsApi } from '@/services/api';
 import type { Location } from '@/services/api';
+import { SUGGESTED_LOCATIONS } from '@/constants/suggestions';
+import { getLocationIcon } from '@/constants/location-icons';
 import LocationCard from '@/components/LocationCard';
+import AddItemCard from '@/components/AddItemCard';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function Home() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [error, setError] = useState('');
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const addedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadLocations();
   }, []);
+
+  useEffect(() => {
+    if (!lastAddedId) return;
+    const t = setTimeout(() => setLastAddedId(null), 2500);
+    return () => clearTimeout(t);
+  }, [lastAddedId]);
+
+  useEffect(() => {
+    if (lastAddedId && addedRef.current) {
+      addedRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }, [lastAddedId, locations]);
+
+  useEffect(() => {
+    if (!successMessage) return;
+    const t = setTimeout(() => setSuccessMessage(''), 4000);
+    return () => clearTimeout(t);
+  }, [successMessage]);
 
   const loadLocations = async () => {
     try {
@@ -28,8 +56,25 @@ export default function Home() {
     }
   };
 
+  const addLocation = async (name: string) => {
+    if (!name) return;
+    setError('');
+    try {
+      setAdding(true);
+      const loc = await locationsApi.create({ name });
+      setLastAddedId(loc.id);
+      setSuccessMessage('Lieu ajoute.');
+      await loadLocations();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erreur lors de la creation';
+      setError(message);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce lieu ? Toutes les pièces, coffres et photos seront supprimés.')) {
+    if (!confirm('Etes-vous sur de vouloir supprimer ce lieu ? Toutes les pieces, coffres et photos seront supprimes.')) {
       return;
     }
     try {
@@ -51,7 +96,7 @@ export default function Home() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Erreur lors de l\'export. Réessayez.');
+      alert('Erreur lors de l\'export. Reessayez.');
     } finally {
       setExporting(false);
     }
@@ -71,45 +116,61 @@ export default function Home() {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Mes lieux</h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <a href="/location/new">
-            <Button>
-              <FontAwesomeIcon icon={faPlus} className="mr-2" />
-              Nouveau lieu
-            </Button>
-          </a>
-          {locations.length > 0 && (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleExportCsv}
-              disabled={exporting}
-              title="Exporter l'inventaire en CSV pour votre assureur"
-            >
-              {exporting ? (
-                <Spinner className="mr-2 size-4" data-icon="inline-start" />
-              ) : (
-                <FontAwesomeIcon icon={faFileCsv} className="mr-2" />
-              )}
-              Exporter en CSV (assureur)
-            </Button>
-          )}
-        </div>
+        {locations.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExportCsv}
+            disabled={exporting}
+            title="Exporter l'inventaire en CSV pour votre assureur"
+          >
+            {exporting ? (
+              <Spinner className="mr-2 size-4" data-icon="inline-start" />
+            ) : (
+              <FontAwesomeIcon icon={faFileCsv} className="mr-2" />
+            )}
+            Exporter en CSV (assureur)
+          </Button>
+        )}
       </div>
 
-      {locations.length === 0 ? (
-        <div className="py-12 text-center">
-          <p className="mb-4 text-muted-foreground">Aucun lieu pour le moment</p>
-          <a href="/location/new">
-            <Button>Ajouter une adresse ou un domicile</Button>
-          </a>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {locations.map((location) => (
-            <LocationCard key={location.id} location={location} onDelete={handleDelete} />
-          ))}
-        </div>
+      {successMessage && (
+        <Alert className="mb-4 border-green-500/50 bg-green-50 text-green-900 dark:border-green-500/50 dark:bg-green-950 dark:text-green-100">
+          <AlertDescription>{successMessage}</AlertDescription>
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {locations.map((location) => (
+          <div
+            key={location.id}
+            ref={location.id === lastAddedId ? addedRef : undefined}
+            className={lastAddedId === location.id ? 'rounded-lg ring-2 ring-green-500 ring-offset-2 transition-all' : ''}
+          >
+            <LocationCard location={location} onDelete={handleDelete} />
+          </div>
+        ))}
+        <AddItemCard
+          label="Ajouter un lieu"
+          suggestions={SUGGESTED_LOCATIONS}
+          getIcon={getLocationIcon}
+          adding={adding}
+          onAddFromSuggestion={addLocation}
+          onAddCustom={addLocation}
+          open={showAdd}
+          onOpenChange={setShowAdd}
+        />
+      </div>
+
+      {locations.length === 0 && !showAdd && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Aucun lieu pour le moment. Cliquez sur le "+" pour en ajouter.
+        </p>
       )}
     </div>
   );

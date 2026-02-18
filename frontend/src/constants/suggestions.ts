@@ -30,6 +30,18 @@ export const SUGGESTED_SAFES = [
   'Coffre cave',
 ] as const;
 
+// Lieux typiques à assurer
+export const SUGGESTED_LOCATIONS = [
+  'Maison',
+  'Appartement',
+  'Condo',
+  'Chalet',
+  'Bureau',
+  'Garage',
+  'Entrepot',
+  'Commerce',
+] as const;
+
 // Objets typiques à déclarer pour l'assurance (nom + catégorie)
 export const SUGGESTED_OBJECTS: Array<{ name: string; category: string }> = [
   { name: 'Bijoux', category: 'jewelry' },
