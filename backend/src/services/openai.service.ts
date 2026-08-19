@@ -17,8 +17,9 @@ const openai = new OpenAI({
 
 /** Vision models users can select (id = API model name) */
 export const VISION_MODELS = [
+  { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra (recommandé)' },
   { id: 'gpt-5.2-pro', label: 'GPT-5.2 Pro (meilleure qualité, plus lent)' },
-  { id: 'gpt-5.2', label: 'GPT-5.2 (recommandé)' },
+  { id: 'gpt-5.2', label: 'GPT-5.2 (version précédente)' },
   { id: 'gpt-5-mini', label: 'GPT-5 Mini (rapide, économique)' },
   { id: 'gpt-4o', label: 'GPT-4o (alternatif)' },
 ] as const;
@@ -27,18 +28,29 @@ export type VisionModelId = (typeof VISION_MODELS)[number]['id'];
 
 const ALLOWED_IDS = new Set<string>(VISION_MODELS.map((m) => m.id));
 
-// Default: gpt-5.2. Validate env override at boot — typo would silently break analysis.
+/** Model used when the caller does not pick one. Single source of truth — analysis runs
+ *  record this id, so a second copy elsewhere could log a model that never ran. */
+export const FALLBACK_VISION_MODEL: VisionModelId = 'gpt-5.6-terra';
+
+// Validate env override at boot — typo would silently break analysis.
 const ENV_MODEL = process.env.OPENAI_VISION_MODEL;
 if (ENV_MODEL && !ALLOWED_IDS.has(ENV_MODEL)) {
   console.warn(
-    `OPENAI_VISION_MODEL="${ENV_MODEL}" is not in VISION_MODELS; falling back to gpt-5.2`
+    `OPENAI_VISION_MODEL="${ENV_MODEL}" is not in VISION_MODELS; falling back to ${FALLBACK_VISION_MODEL}`
   );
 }
-const DEFAULT_VISION_MODEL: VisionModelId =
-  ENV_MODEL && ALLOWED_IDS.has(ENV_MODEL) ? (ENV_MODEL as VisionModelId) : 'gpt-5.2';
+export const DEFAULT_VISION_MODEL: VisionModelId =
+  ENV_MODEL && ALLOWED_IDS.has(ENV_MODEL) ? (ENV_MODEL as VisionModelId) : FALLBACK_VISION_MODEL;
+
+// Log the effective default: an OPENAI_VISION_MODEL set in the deploy env silently
+// overrides the code default, and this is the only way to see that from the logs.
+console.log(
+  `[OpenAI] default vision model: ${DEFAULT_VISION_MODEL}${ENV_MODEL ? ' (from OPENAI_VISION_MODEL)' : ' (code default)'}`
+);
 
 // GPT-5 reasoning models do not support the temperature parameter.
 const MODELS_WITHOUT_TEMPERATURE = new Set<string>([
+  'gpt-5.6-terra',
   'gpt-5.2-pro',
   'gpt-5.2',
   'gpt-5-mini',

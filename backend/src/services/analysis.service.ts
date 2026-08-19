@@ -1,6 +1,6 @@
 import prisma from '../database/client';
 import { Prisma, type AnalysisStatus } from '@prisma/client';
-import { openaiService } from './openai.service';
+import { openaiService, DEFAULT_VISION_MODEL } from './openai.service';
 import { geminiService } from './gemini.service';
 import { locationService } from './location.service';
 import { pricingService } from './pricing.service';
@@ -269,7 +269,7 @@ class AnalysisService {
     });
     if (images.length === 0) throw AppError.badRequest('Aucune photo dans cette piece');
 
-    const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
+    const modelId = model && model.trim() ? model.trim() : DEFAULT_VISION_MODEL;
     const run = await prisma.roomAnalysisRun.create({
       data: { roomId, modelId, status: 'processing', analysisMetadata: {} },
     });
@@ -295,7 +295,7 @@ class AnalysisService {
     });
     if (images.length === 0) throw AppError.badRequest('Aucune photo dans ce coffre');
 
-    const modelId = model && model.trim() ? model.trim() : 'gpt-5.2';
+    const modelId = model && model.trim() ? model.trim() : DEFAULT_VISION_MODEL;
     const run = await prisma.safeAnalysisRun.create({
       data: { safeId, modelId, status: 'processing', analysisMetadata: {} },
     });

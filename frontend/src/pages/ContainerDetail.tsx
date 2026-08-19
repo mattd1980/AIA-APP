@@ -69,7 +69,7 @@ export default function ContainerDetail({ containerType }: ContainerDetailProps)
   const [itemEditForm, setItemEditForm] = useState<Partial<ContainerDetectedItem>>({});
   const [savingItemId, setSavingItemId] = useState<string | null>(null);
   const [visionModels, setVisionModels] = useState<VisionModel[]>([]);
-  const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.2');
+  const [selectedVisionModel, setSelectedVisionModel] = useState<string>('gpt-5.6-terra');
   const [selectedRunId, setSelectedRunId] = useState<string | 'manual' | 'all' | null>(null);
   const [confirmDeleteImageId, setConfirmDeleteImageId] = useState<string | null>(null);
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<string | null>(null);
